@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import ChromePanel from '~/ui/foundation/ChromePanel.vue'
+import SideDrawerTab from '~/ui/foundation/SideDrawerTab.vue'
+import MapCanvas from '~/ui/map/MapCanvas.vue'
 import ResourceBar from '~/ui/hud/ResourceBar.vue'
 import type { ResourceReading } from '~/ui/hud/resources'
-import GameScreen from '~/ui/GameScreen.vue'
-import Showcase from '~/ui/Showcase.vue'
 
 /*
- * Angka contoh diambil dari tangkapan layar Indonesia Day 1 supaya perbandingan
- * berdampingan dengan aslinya memakai isi yang sama, bukan sekadar bentuk yang
- * sama. Sumbernya docs/planning/01-research-con-screenshots.md §4.2.
+ * Tata letak Conflict of Nations: peta memenuhi layar, dan setiap panel
+ * mengapung di atasnya. Tidak ada bilah samping yang memakan lebar — pada peta
+ * dunia setiap piksel yang diambil chrome adalah wilayah yang tidak terlihat.
+ *
+ * Panel pemain duduk di bawah resource bar, bukan sejajar dengannya. Keduanya
+ * di tepi atas berarti bertabrakan pada layar sempit, dan resource bar yang
+ * menang membuat bendera serta nama negara tertutup separuh.
  */
 const readings: ResourceReading[] = [
   { id: 'materials', label: 'Materials', stock: 15_757, rate: 88 },
@@ -20,40 +23,18 @@ const readings: ResourceReading[] = [
   { id: 'manpower', label: 'Manpower', stock: 5_910, rate: 46 },
   { id: 'money', label: 'Money', stock: 59_098, rate: 359 },
 ]
-
-type View = 'map' | 'showcase' | 'hud'
-
-const requested = new URLSearchParams(location.search).get('view')
-const view = ref<View>(
-  requested === 'hud' || requested === 'showcase' ? requested : 'map',
-)
 </script>
 
 <template>
-  <main class="h-full w-full overflow-auto bg-map-seaDeep">
-    <nav class="flex gap-2 px-6 pt-4 text-[11px]">
-      <button
-        v-for="option in (['map', 'showcase', 'hud'] as const)"
-        :key="option"
-        type="button"
-        class="px-3 py-1 tracking-[0.1em] uppercase"
-        :class="view === option ? 'bg-slate-800 text-white' : 'bg-slate-850 text-white/50'"
-        @click="view = option"
-      >
-        {{ option }}
-      </button>
-    </nav>
+  <div class="relative h-full w-full overflow-hidden">
+    <MapCanvas class="absolute inset-0" />
 
-    <div v-if="view === 'map'" class="h-[calc(100%-2.5rem)] w-full">
-      <GameScreen />
-    </div>
+    <div class="pointer-events-none absolute inset-0">
+      <div class="pointer-events-auto absolute left-1/2 top-0 -translate-x-1/2">
+        <ResourceBar :readings="readings" />
+      </div>
 
-    <Showcase v-else-if="view === 'showcase'" />
-
-    <div v-else class="p-4">
-      <ResourceBar :readings="readings" />
-
-      <ChromePanel class="mt-6 w-[344px] p-3">
+      <ChromePanel class="pointer-events-auto absolute left-3 top-[68px] w-[344px] p-3">
         <div class="flex items-center gap-3">
           <div class="h-8 w-12 bg-gradient-to-b from-[#c8102e] to-white" />
           <div>
@@ -68,6 +49,14 @@ const view = ref<View>(
           <div class="ml-auto text-victory">77 / 1850 VP</div>
         </div>
       </ChromePanel>
+
+      <div class="pointer-events-auto absolute left-0 top-1/2 -translate-y-1/2">
+        <SideDrawerTab label="INTEL" />
+      </div>
+
+      <div class="pointer-events-auto absolute right-0 top-1/2 -translate-y-1/2">
+        <SideDrawerTab label="CITIES" side="right" />
+      </div>
     </div>
-  </main>
+  </div>
 </template>

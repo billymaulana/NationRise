@@ -203,9 +203,8 @@ onBeforeUnmount(() => {
       {{ label.name }}
     </div>
 
-    <div class="pointer-events-none absolute left-3 top-3 bg-slate-850/85 px-3 py-2 text-[12px]">
-      <div class="text-white/60">{{ status }}</div>
-      <div class="text-white/40">zoom {{ zoomLabel }} &middot; {{ labels.length }} labels</div>
+    <div class="pointer-events-none absolute bottom-3 left-3 bg-slate-850/85 px-3 py-2 text-[12px]">
+      <div class="text-white/40">{{ status }} &middot; zoom {{ zoomLabel }}</div>
       <div v-if="hovered" class="mt-1 text-white">{{ hovered }}</div>
       <div v-if="selected" class="text-income">Selected: {{ selected }}</div>
     </div>
