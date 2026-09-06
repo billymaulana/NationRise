@@ -17,13 +17,16 @@
 **Selesai bila:** halaman kosong tampil dengan token terpasang, `pnpm test`
 hijau, dan uji pelapisan gagal bila `src/sim` diberi impor `vue`.
 
-## Fase 1 — pondasi visual
+## Fase 1 — pondasi visual — SELESAI
 
-- Sembilan komponen pondasi di `05-spesifikasi-layar.md`.
+- Sembilan komponen pondasi di `05-spesifikasi-layar.md`, plus `CornerBrackets`
+  yang ditemukan saat membedah referensi.
 - Halaman peraga yang menampilkan semuanya berdampingan.
+- Angka terukurnya dikunci oleh uji komponen, bukan hanya dinilai mata.
 
-**Selesai bila:** halaman peraga disandingkan dengan potongan tangkapan layar
-CoN dan bentuknya cocok — belah ketupat, trapesium, notch, zebra halus.
+Bentuk tab diperbaiki dua kali setelah disandingkan dengan aslinya: kemiringan
+dikurangi dari 8px ke 4px, dan barisnya dipindah ke latar terang. Rinciannya di
+`03-bahasa-visual.md` §7.
 
 ## Fase 2 — simulasi berjalan
 
@@ -36,6 +39,8 @@ Research tidak menyentuh Military.
 
 **Selesai bila:** 323 uji hijau di Vitest dengan nilai harapan identik, di
 lingkungan `node` tanpa DOM.
+
+Kemajuan per subsistem ada di `06-port-simulasi.md` §Kemajuan.
 
 ## Fase 3 — peta terlihat
 

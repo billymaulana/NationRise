@@ -80,6 +80,23 @@ tanpa menimbulkan galat:
 | `Dictionary` urutan tak terjamin | `Map` urut sisip | Jangan andalkan keduanya; pakai array terurut |
 | `struct` disalin nilai | objek disalin rujukan | Mutasi tak sengaja merambat; bekukan atau salin eksplisit |
 | `List<T>.Sort` stabil sejak .NET 5 | `Array.sort` stabil sejak ES2019 | Aman, tetapi pembanding harus total — jangan pernah kembalikan 0 untuk elemen berbeda |
+| `MathF.Round` / `Math.Round` membulatkan setengah **ke genap** | `Math.round` membulatkan setengah **menjauhi nol** | 2,5 menjadi 2 di C# dan 3 di JavaScript. Pakai `roundHalfToEven` dari `src/sim/determinism/rounding.ts` |
+
+Pembulatan titik tengah adalah perangkap yang paling sunyi. `MathF.Round(2.5)`
+mengembalikan `2` di .NET, sedangkan `Math.round(2.5)` mengembalikan `3`.
+Selisih satu unit per pembulatan cukup memisahkan dua simulasi yang seharusnya
+identik, dan tidak ada galat apa pun yang menandainya. Perilaku .NET-nya sudah
+diverifikasi dengan menjalankannya, bukan disimpulkan dari dokumentasi:
+
+```
+MathF.Round(2.5) = 2      MathF.Round(0.5)  = 0
+MathF.Round(3.5) = 4      MathF.Round(1.5)  = 2
+MathF.Round(2.6) = 3      MathF.Round(-2.5) = -2
+```
+
+Setiap pembulatan di port wajib lewat `roundHalfToEven`, dan setiap pembagian
+bilangan bulat lewat `intDiv`; keduanya ada di
+`src/sim/determinism/rounding.ts`.
 
 `Math.trunc` versus `Math.floor` layak disebut dua kali. C# membulatkan
 pembagian bilangan bulat ke arah nol; `Math.floor` membulatkan ke bawah.
@@ -96,6 +113,17 @@ di sini:
 - Uji yang memindai tipe di `src/sim/**` untuk properti bertampilan.
 - Konfigurasi Vitest yang menjalankan rangkaian uji simulasi di lingkungan
   `node`, bukan `jsdom`, sehingga `document` memang tidak ada.
+
+## Kemajuan
+
+| Subsistem | Status | Uji |
+|---|---|---|
+| Determinism | Selesai, bit-exact dengan C# | 7 |
+| Pembulatan bersama | Selesai, diverifikasi terhadap .NET | 10 |
+| Time | Selesai | 19 |
+| World (struktur inti) | Selesai | 18 |
+| World (`ProvinceQuery`) | Menunggu subsistem `Data` — ujinya membaca `world.bin` | — |
+| Sisanya | Belum | — |
 
 ## Verifikasi selesai
 
