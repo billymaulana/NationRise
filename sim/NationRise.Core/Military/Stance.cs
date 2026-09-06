@@ -159,6 +159,8 @@ public sealed class StanceSystem
 
     public static bool CanCapture(StanceKind kind) => kind != StanceKind.Raid;
 
+    /* Immobility is a permission, not a speed of zero: a dug-in stack that is
+       routed or ordered out still has to travel at a usable rate. */
     public static bool CanMove(StanceKind kind) =>
         kind is not (StanceKind.Hold or StanceKind.Ambush);
 

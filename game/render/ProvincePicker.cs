@@ -16,8 +16,12 @@ public sealed partial class ProvincePicker : Node3D
     private Vector3[] _centres = [];
 
     [Signal] public delegate void ProvincePickedEventHandler(int province);
+    [Signal] public delegate void ProvinceTargetedEventHandler(int province);
 
     public int Selected { get; private set; } = -1;
+
+    public Vector3 CentreOf(int province) =>
+        province >= 0 && province < _centres.Length ? _centres[province] : Vector3.Zero;
 
     public void SetCentres(Vector3[] centres)
     {
@@ -39,7 +43,8 @@ public sealed partial class ProvincePicker : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } click)
+        if (@event is not InputEventMouseButton { Pressed: true } click
+            || click.ButtonIndex is not (MouseButton.Right or MouseButton.Left))
         {
             return;
         }
@@ -69,7 +74,9 @@ public sealed partial class ProvincePicker : Node3D
         }
 
         Selected = province;
-        EmitSignal(SignalName.ProvincePicked, province);
+        EmitSignal(
+            click.ButtonIndex == MouseButton.Right ? SignalName.ProvincePicked : SignalName.ProvinceTargeted,
+            province);
     }
 
     private int NearestTo(Vector3 point)

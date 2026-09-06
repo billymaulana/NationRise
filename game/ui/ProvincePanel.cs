@@ -39,14 +39,12 @@ public sealed partial class ProvincePanel : PanelContainer
 
         /* Absolute placement rather than a right anchor: a PanelContainer sizes
            itself to its text, so anchoring its left edge to the right of the
-           screen pushes it off-screen entirely. */
-        /* Offsets rather than Position: a Control inside a CanvasLayer keeps
-           its anchor offsets, and assigning Position alone gets overwritten
-           the first time the layout is recalculated. */
-        SetAnchorsPreset(LayoutPreset.TopLeft, keepOffsets: false);
-        OffsetLeft = 980;
-        OffsetTop = 40;
+           screen pushes it off-screen entirely. Setting only OffsetLeft/Top
+           leaves the right and bottom offsets at zero, which yields an inverted
+           rect that reports the right position and draws nothing. */
+        SetAnchorsPreset(LayoutPreset.TopLeft);
         CustomMinimumSize = new Vector2(300, 0);
+        Position = new Vector2(980, 40);
         Visible = false;
     }
 

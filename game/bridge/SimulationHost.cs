@@ -108,7 +108,7 @@ public sealed partial class SimulationHost : Node
         _brain.AssignArchetypes();
         _planner = new WarPlanner(_world, _relations, _data.Land);
         _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed));
-        _movement = new MovementSystem(_world);
+        _movement = new MovementSystem(_world, _data.Land);
         _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
 
         int indonesia = _world.Nations.IndexOf("IDN");
@@ -359,7 +359,7 @@ public sealed partial class SimulationHost : Node
             return false;
         }
 
-        _movement = new MovementSystem(_world);
+        _movement = new MovementSystem(_world, _data.Land);
         GD.Print($"Loaded, resuming at {_world.Clock.Date}.");
         return true;
     }
@@ -524,6 +524,259 @@ public sealed partial class SimulationHost : Node
         {
             _query = new ProvinceQuery(_world, _data, names);
         }
+    }
+
+    public ushort PlayerNation => _world is null ? (ushort)0 : (ushort)_world.Nations.IndexOf("IDN");
+
+    /*
+       Answers "what happens if I attack here" for the province the player just
+       clicked, using the strongest of their stacks that could reach it. Nothing
+       is ordered: the estimate exists to be read before committing.
+    */
+    public AttackPreview? PreviewAttackOn(int province)
+    {
+        if (_world is null || _data is null || _relations is null)
+        {
+            return null;
+        }
+
+        ushort player = PlayerNation;
+        Army? defender = null;
+
+        foreach (Army army in _armies.Values)
+        {
+            if (army.Province == province && army.Nation != player && !army.IsDestroyed
+                && _relations.Between(player, army.Nation) == Relation.War
+                && (defender is null || army.Count > defender.Count))
+            {
+                defender = army;
+            }
+        }
+
+        if (defender is null)
+        {
+            return null;
+        }
+
+        /* Land approaches are searched first: on an archipelago most fronts are
+           reachable only by sea, but where a border exists it is the cheaper
+           attack and the one the player should be shown. */
+        Army? attacker = StrongestPlayerStackAdjacent(province, _data.Land, player);
+        bool amphibious = false;
+
+        if (attacker is null)
+        {
+            attacker = StrongestPlayerStackAdjacent(province, _data.Sea, player);
+            amphibious = attacker is not null;
+        }
+
+        return attacker is null ? null : PreviewAttackAt(province, attacker, amphibious);
+    }
+
+    private AttackPreview? PreviewAttackAt(int province, Army attacker, bool amphibious)
+    {
+        if (_world is null || _relations is null)
+        {
+            return null;
+        }
+
+        Army? defender = null;
+        foreach (Army army in _armies.Values)
+        {
+            if (army.Province == province && army.Nation != attacker.Nation && !army.IsDestroyed
+                && _relations.Between(attacker.Nation, army.Nation) == Relation.War
+                && (defender is null || army.Count > defender.Count))
+            {
+                defender = army;
+            }
+        }
+
+        if (defender is null)
+        {
+            return null;
+        }
+
+        var terrain = (Terrain)_world.Provinces.Terrain[province];
+        float situational = amphibious ? Combat.LandingPenalty : 1f;
+
+        return new AttackPreview(
+            attacker.Count,
+            defender.Count,
+            _world.Nations.Name[defender.Nation],
+            terrain,
+            amphibious,
+            BattleEstimate.Forecast(attacker, defender, terrain, situational));
+    }
+
+    private Army? StrongestPlayerStackAdjacent(int province, ProvinceGraph graph, ushort player)
+    {
+        Army? best = null;
+
+        foreach (ushort neighbour in graph.NeighboursOf(province))
+        {
+            foreach (Army army in _armies.Values)
+            {
+                if (army.Province == neighbour && army.Nation == player && !army.IsDestroyed
+                    && (best is null || army.Count > best.Count))
+                {
+                    best = army;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /*
+       Player orders. The AI reaches the same MovementSystem through the same
+       call, so a route the player can walk is a route the AI could have walked;
+       nothing here is a privileged path.
+    */
+    public int PlayerArmyAt(int province)
+    {
+        ushort player = PlayerNation;
+        int best = -1;
+        int bestCount = 0;
+
+        foreach (Army army in _armies.Values)
+        {
+            if (army.Province == province && army.Nation == player && !army.IsDestroyed
+                && army.Count > bestCount)
+            {
+                best = army.Id;
+                bestCount = army.Count;
+            }
+        }
+
+        return best;
+    }
+
+    public MovePlan? PlanMove(int armyId, int destination)
+    {
+        if (_world is null || _pathfinder is null || !_armies.TryGetValue(armyId, out Army? army))
+        {
+            return null;
+        }
+
+        if (army.IsDestroyed || destination == army.Province)
+        {
+            return null;
+        }
+
+        Pathfinder.StepCost cost = (_, to, bySea) =>
+            MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
+
+        IReadOnlyList<int> path = _pathfinder.FindPath(army.Province, destination, cost);
+        if (path.Count < 2)
+        {
+            return null;
+        }
+
+        float hours = 0f;
+        for (int i = 1; i < path.Count; i++)
+        {
+            bool bySea = !LandLinked(path[i - 1], path[i]);
+            hours += MovementCost.HoursFor(_world.Provinces[path[i]].Terrain, bySea)
+                / MathF.Max(army.Speed, 0.1f);
+        }
+
+        bool amphibiousArrival = !LandLinked(path[^2], path[^1]);
+
+        return new MovePlan(armyId, path, hours, amphibiousArrival, PreviewAttackAt(destination, army, amphibiousArrival));
+    }
+
+    public bool IssueMove(int armyId, int destination)
+    {
+        if (_movement is null || !_armies.TryGetValue(armyId, out Army? army))
+        {
+            return false;
+        }
+
+        MovePlan? plan = PlanMove(armyId, destination);
+        if (plan is null)
+        {
+            return false;
+        }
+
+        _movement.Order(army, plan.Path);
+        return true;
+    }
+
+    private bool LandLinked(int from, int to)
+    {
+        if (_data is null)
+        {
+            return true;
+        }
+
+        foreach (ushort neighbour in _data.Land.NeighboursOf(from))
+        {
+            if (neighbour == to)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public string FrontDiagnostic()
+    {
+        if (_world is null || _relations is null || _data is null)
+        {
+            return "not loaded";
+        }
+
+        ushort player = PlayerNation;
+        int mine = 0;
+        int hostile = 0;
+        int contact = 0;
+
+        foreach (Army army in _armies.Values)
+        {
+            if (army.IsDestroyed)
+            {
+                continue;
+            }
+
+            if (army.Nation == player)
+            {
+                mine++;
+                continue;
+            }
+
+            if (_relations.Between(player, army.Nation) != Relation.War)
+            {
+                continue;
+            }
+
+            hostile++;
+            foreach (Army own in _armies.Values)
+            {
+                if (own.Nation != player || own.IsDestroyed)
+                {
+                    continue;
+                }
+
+                foreach (ushort n in _data.Land.NeighboursOf(army.Province))
+                {
+                    if (n == own.Province)
+                    {
+                        contact++;
+                    }
+                }
+
+                foreach (ushort n in _data.Sea.NeighboursOf(army.Province))
+                {
+                    if (n == own.Province)
+                    {
+                        contact++;
+                    }
+                }
+            }
+        }
+
+        return $"player stacks {mine}, hostile stacks {hostile}, adjacency pairs {contact}";
     }
 
     public bool IsBlockaded(int province) => _blockade?.IsBlockaded(province) ?? false;

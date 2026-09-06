@@ -12,6 +12,7 @@ public readonly record struct StrengthBreakdown(
     float Terrain,
     float StackPenalty,
     float HealthPenalty,
+    float Situational,
     float Total);
 
 public readonly record struct BattleForecast(
@@ -38,7 +39,12 @@ public static class BattleEstimate
 {
     public const int TickCeiling = 96;
 
-    public static StrengthBreakdown Breakdown(Army army, Army opponent, Terrain terrain, bool attacking)
+    public static StrengthBreakdown Breakdown(
+        Army army,
+        Army opponent,
+        Terrain terrain,
+        bool attacking,
+        float situational = 1f)
     {
         ArgumentNullException.ThrowIfNull(army);
         ArgumentNullException.ThrowIfNull(opponent);
@@ -73,16 +79,26 @@ public static class BattleEstimate
             terrainModifier,
             stack,
             health,
-            rated * terrainModifier * stack * health);
+            situational,
+            rated * terrainModifier * stack * health * situational);
     }
 
-    public static BattleForecast Forecast(Army attacker, Army defender, Terrain terrain)
+    /*
+       `attackerSituational` carries modifiers the stack has not incurred yet —
+       an opposed landing being the one that matters on an archipelago. Showing
+       it before the order is given is the entire point of the preview.
+    */
+    public static BattleForecast Forecast(
+        Army attacker,
+        Army defender,
+        Terrain terrain,
+        float attackerSituational = 1f)
     {
-        StrengthBreakdown attack = Breakdown(attacker, defender, terrain, attacking: true);
+        StrengthBreakdown attack = Breakdown(attacker, defender, terrain, true, attackerSituational);
         StrengthBreakdown defence = Breakdown(defender, attacker, terrain, attacking: false);
 
-        Outcome best = Simulate(attacker, defender, terrain, attackerLuck: 1f + Combat.RandomSpread);
-        Outcome worst = Simulate(attacker, defender, terrain, attackerLuck: 1f - Combat.RandomSpread);
+        Outcome best = Simulate(attacker, defender, terrain, attackerSituational, 1f + Combat.RandomSpread);
+        Outcome worst = Simulate(attacker, defender, terrain, attackerSituational, 1f - Combat.RandomSpread);
 
         return new BattleForecast(
             attack,
@@ -104,7 +120,12 @@ public static class BattleEstimate
        recomputed each tick from the surviving units, so the forecast captures the
        spiral where a losing side keeps losing faster.
     */
-    private static Outcome Simulate(Army attacker, Army defender, Terrain terrain, float attackerLuck)
+    private static Outcome Simulate(
+        Army attacker,
+        Army defender,
+        Terrain terrain,
+        float attackerSituational,
+        float attackerLuck)
     {
         float defenderLuck = 2f - attackerLuck;
 
@@ -122,7 +143,7 @@ public static class BattleEstimate
             tick++;
 
             float toDefender = EffectiveStrength(attackers, defender, attacking: true)
-                * attackTerrain * Combat.DamageScale * attackerLuck;
+                * attackTerrain * attackerSituational * Combat.DamageScale * attackerLuck;
             float toAttacker = EffectiveStrength(defenders, attacker, attacking: false)
                 * Combat.DamageScale * defenderLuck;
 

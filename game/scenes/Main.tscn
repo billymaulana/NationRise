@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://bridge/SimulationHost.cs" id="1"]
 [ext_resource type="Script" path="res://render/ProvinceMap.cs" id="2"]
@@ -10,6 +10,8 @@
 [ext_resource type="Script" path="res://ui/DecisionPanel.cs" id="8"]
 [ext_resource type="Script" path="res://render/ProvincePicker.cs" id="9"]
 [ext_resource type="Script" path="res://ui/ProvincePanel.cs" id="10"]
+[ext_resource type="Script" path="res://ui/BattlePreviewPanel.cs" id="11"]
+[ext_resource type="Script" path="res://ui/ArmyCommand.cs" id="12"]
 
 [node name="Main" type="Node3D"]
 
@@ -38,6 +40,9 @@ transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 10, 0)
 [node name="Screenshot" type="Node" parent="."]
 script = ExtResource("3")
 
+[node name="ArmyCommand" type="Node3D" parent="."]
+script = ExtResource("12")
+
 [node name="Hud" type="CanvasLayer" parent="."]
 
 [node name="StatusPanel" type="PanelContainer" parent="Hud"]
@@ -48,3 +53,6 @@ script = ExtResource("8")
 
 [node name="ProvincePanel" type="PanelContainer" parent="Hud"]
 script = ExtResource("10")
+
+[node name="BattlePreviewPanel" type="PanelContainer" parent="Hud"]
+script = ExtResource("11")

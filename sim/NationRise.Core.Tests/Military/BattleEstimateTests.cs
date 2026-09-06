@@ -168,6 +168,43 @@ public class BattleEstimateTests
         Assert.True(rough.SlowestTicks >= open.SlowestTicks);
     }
 
+    /* Indonesia attacks across water far more often than across a border, so
+       the landing penalty is the modifier the preview most needs to state. */
+    [Fact]
+    public void AnOpposedLandingIsForecastAtHalfStrength()
+    {
+        Army attacker = Infantry(1, 1, 8);
+        Army defender = Infantry(2, 2, 4);
+
+        BattleForecast dry = BattleEstimate.Forecast(attacker, defender, Terrain.OpenGround);
+        BattleForecast landing = BattleEstimate.Forecast(
+            attacker, defender, Terrain.OpenGround, Combat.LandingPenalty);
+
+        Assert.Equal(dry.Attacker.Total * Combat.LandingPenalty, landing.Attacker.Total, 3);
+        Assert.Equal(dry.Defender.Total, landing.Defender.Total, 3);
+        Assert.True(landing.SlowestTicks > dry.SlowestTicks);
+        Assert.True(landing.AttackerLossesHigh >= dry.AttackerLossesHigh);
+    }
+
+    [Fact]
+    public void LandingPenaltyExpiresWithTheBeachhead()
+    {
+        Army landed = Infantry(1, 1, 5);
+        landed.LandedOnTick = 100;
+
+        Assert.Equal(Combat.LandingPenalty, Combat.LandingModifier(landed, 120), 3);
+        Assert.Equal(1f, Combat.LandingModifier(landed, 100 + Combat.LandingWindowTicks), 3);
+    }
+
+    [Fact]
+    public void ArmiesThatNeverSailedFightAtFullStrength()
+    {
+        Army overland = Infantry(1, 1, 5);
+
+        Assert.Equal(1f, Combat.LandingModifier(overland, 0), 3);
+        Assert.Equal(1f, Combat.LandingModifier(overland, long.MaxValue), 3);
+    }
+
     [Fact]
     public void ArmourMatchupMattersMoreThanHeadcount()
     {
