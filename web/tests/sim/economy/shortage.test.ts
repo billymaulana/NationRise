@@ -14,8 +14,10 @@ import {
 import { Stockpile } from '~/sim/economy/Stockpile'
 import { UpkeepSystem } from '~/sim/economy/Upkeep'
 import { Army } from '~/sim/military/Army'
+import { Mobilisation, unitRecipeFor } from '~/sim/military/Mobilisation'
 import { DESTROYER, MAIN_BATTLE_TANK, MOTORIZED_INFANTRY } from '~/sim/military/UnitCatalogue'
 import type { UnitClass } from '~/sim/military/UnitClass'
+import { ResearchQueue } from '~/sim/research/ResearchQueue'
 import type { WorldState } from '~/sim/world/WorldState'
 import { worldBinary } from '../../helpers/worldAssets'
 
@@ -169,6 +171,23 @@ describe('ShortageSystem', () => {
     expect(h.shortage.isProductionHalted(h.nation)).toBe(true)
     expect(() => h.buildings.begin(city, BuildingType.ArmyBase)).toThrow(ConstructionRejected)
     expect(() => h.buildings.begin(city, BuildingType.ArmyBase)).toThrow(/Materials/)
+  })
+
+  it('kelangkaan materials menghentikan mobilisasi', () => {
+    const h = setup()
+    const city = firstCityOf(h.state, h.nation)
+    garrison(h, city, MAIN_BATTLE_TANK)
+
+    const research = new ResearchQueue(h.state, h.stock, h.buildings)
+    const mobilisation = new Mobilisation(h.state, h.stock, h.buildings, research)
+    mobilisation.shortage = h.shortage
+
+    days(h, 3)
+
+    const check = mobilisation.canMobilise(city, unitRecipeFor('motorized_infantry'))
+
+    expect(check.ok).toBe(false)
+    expect(check.reason).toContain('Materials')
   })
 
   /* Kelangkaan yang belum pernah terjadi harus membiarkan setiap gerbang

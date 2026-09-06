@@ -3,6 +3,7 @@ import { readWorld, type WorldData } from '~/sim/data/WorldFile'
 import { Relation, Relations } from '~/sim/diplomacy/Relation'
 import { Blockade } from '~/sim/military/Blockade'
 import { Army } from '~/sim/military/Army'
+import { unitRecipeFor } from '~/sim/military/Mobilisation'
 import { CORVETTE, DESTROYER, MAIN_BATTLE_TANK, MOTORIZED_INFANTRY } from '~/sim/military/UnitCatalogue'
 import { Domain } from '~/sim/military/UnitClass'
 import type { WorldState } from '~/sim/world/WorldState'
@@ -190,7 +191,9 @@ describe('Blockade', () => {
     expect(coastal).toBeGreaterThan(total / 2)
   })
 
-  it('kedua kapal perang berada di domain laut', () => {
+  it('resep armada ada untuk kedua kapal perang', () => {
+    expect(unitRecipeFor('corvette')).toBeDefined()
+    expect(unitRecipeFor('destroyer')).toBeDefined()
     expect(CORVETTE.domain).toBe(Domain.Sea)
     expect(DESTROYER.domain).toBe(Domain.Sea)
   })
