@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import ChromePanel from '~/ui/foundation/ChromePanel.vue'
 import ResourceBar from '~/ui/hud/ResourceBar.vue'
 import type { ResourceReading } from '~/ui/hud/resources'
+import Showcase from '~/ui/Showcase.vue'
 
 /*
  * Angka contoh diambil dari tangkapan layar Indonesia Day 1 supaya perbandingan
@@ -17,14 +19,33 @@ const readings: ResourceReading[] = [
   { id: 'manpower', label: 'Manpower', stock: 5_910, rate: 46 },
   { id: 'money', label: 'Money', stock: 59_098, rate: 359 },
 ]
+
+const view = ref<'hud' | 'showcase'>(
+  new URLSearchParams(location.search).get('view') === 'hud' ? 'hud' : 'showcase',
+)
 </script>
 
 <template>
-  <main class="h-full w-full bg-map-seaDeep p-4">
-    <ResourceBar :readings="readings" />
+  <main class="h-full w-full overflow-auto bg-map-seaDeep">
+    <nav class="flex gap-2 px-6 pt-4 text-[11px]">
+      <button
+        v-for="option in (['showcase', 'hud'] as const)"
+        :key="option"
+        type="button"
+        class="px-3 py-1 tracking-[0.1em] uppercase"
+        :class="view === option ? 'bg-slate-800 text-white' : 'bg-slate-850 text-white/50'"
+        @click="view = option"
+      >
+        {{ option }}
+      </button>
+    </nav>
 
-    <div class="mt-6 flex gap-4">
-      <ChromePanel class="w-[344px] p-3">
+    <Showcase v-if="view === 'showcase'" />
+
+    <div v-else class="p-4">
+      <ResourceBar :readings="readings" />
+
+      <ChromePanel class="mt-6 w-[344px] p-3">
         <div class="flex items-center gap-3">
           <div class="h-8 w-12 bg-gradient-to-b from-[#c8102e] to-white" />
           <div>
@@ -38,11 +59,6 @@ const readings: ResourceReading[] = [
           <div><span class="text-white/60">TIME</span> <span class="ml-2">17:11</span></div>
           <div class="ml-auto text-victory">77 / 1850 VP</div>
         </div>
-      </ChromePanel>
-
-      <ChromePanel tone="raised" class="p-3 text-[12px] text-white/70">
-        Pondasi visual. Token diturunkan dari piksel; lihat
-        <code class="text-income">docs/03-bahasa-visual.md</code>.
       </ChromePanel>
     </div>
   </main>

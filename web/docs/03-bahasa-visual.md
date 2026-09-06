@@ -122,7 +122,63 @@ Bentuk khas yang berulang di seluruh antarmuka, dan wajib ditiru:
   `border-radius` besar di mana pun.
 - **Chevron ganda** (`»`) untuk tab samping yang bisa dibuka.
 
-## 7. Cara mengukur ulang
+## 7. Komponen pondasi: angka terukur
+
+Ditambahkan setelah komponen dibangun dan disandingkan dengan aslinya.
+
+### Tab trapesium
+
+| Ukuran | Nilai |
+|---|---|
+| Tinggi | 28 px |
+| Jarak antar tab | 67 px |
+| Sisi miring | 4 px per sisi |
+| Warna garis tepi | `#c3cdd1` (hue 197, tetap sekeluarga) |
+
+Sisi **melebar ke bawah**, bukan ke atas: tab menyatu dengan daftar isinya yang
+berada di bawahnya, bukan dengan header di atasnya.
+
+Yang paling menentukan bukan kemiringannya, melainkan **latar barisnya harus
+terang**. Celah miring antar tab memperlihatkan latar modal `#ecedee`. Menaruh
+baris tab di atas panel gelap mengubah pemisah tipis menjadi baji hitam, dan
+perbedaan itu terlihat seketika meski geometrinya sudah tepat.
+
+### Keadaan belah ketupat
+
+| Keadaan | Hex | Catatan |
+|---|---|---|
+| `available` | `#6a8c70` | Bisa diriset |
+| `locked` | `#a76a79` | Terkunci |
+| `unavailable` | `#757575` | **Abu netral murni** |
+| `done` | `#596d7a` | Sudah selesai |
+| `empty` | transparan | Hanya garis luar |
+
+`unavailable` adalah satu-satunya tempat CoN keluar dari disiplin satu-hue di
+§1. Justru netral penuh itulah yang membuatnya terbaca mati; memberinya rona
+biru seperti sisa antarmuka akan membuatnya tampak masih aktif.
+
+### Badge biaya
+
+| Keadaan | Hex |
+|---|---|
+| Tidak terjangkau | `#a33435` |
+| Terjangkau | `#758a9b` |
+
+### Kurung sudut
+
+Motif yang mudah terlewat: bagian seperti `RESEARCH COSTS` dibingkai hanya oleh
+**empat sudutnya**, sisi-sisinya dibiarkan terbuka. Bukan kotak penuh, bukan
+garis bawah.
+
+### Jebakan implementasi
+
+`clip-path` dijalankan **setelah** `filter`. Meletakkan keduanya pada elemen
+yang sama memotong habis bayangan yang seharusnya menjadi garis tepi, tanpa
+galat apa pun — hasilnya hanya terlihat "kurang rapi". Garis tepi pada bentuk
+ter-clip harus digambar dengan `filter` di elemen induk dan `clip-path` di
+anaknya.
+
+## 8. Cara mengukur ulang
 
 Angka di atas bisa diverifikasi dan dibantah:
 
@@ -141,7 +197,7 @@ Nama berkas tangkapan layar macOS memakai U+202F (spasi sempit tanpa jeda)
 sebelum `PM`/`AM`. Selalu kutip path-nya atau pakai glob; mengetik spasi biasa
 akan menghasilkan "file not found" yang menyesatkan.
 
-## 8. Aturan yang diambil
+## 9. Aturan yang diambil
 
 1. **Satu hue untuk chrome.** Warna baru diambil dengan menggeser lightness,
    bukan hue.
