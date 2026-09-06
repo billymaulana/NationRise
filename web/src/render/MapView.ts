@@ -1,10 +1,12 @@
 import {
   DataTexture,
+  LinearFilter,
   Mesh,
   NearestFilter,
   NoColorSpace,
   OrthographicCamera,
   PlaneGeometry,
+  RedFormat,
   RGBAFormat,
   Scene,
   ShaderMaterial,
@@ -13,8 +15,9 @@ import {
   Vector2,
   WebGLRenderer,
 } from 'three'
-import { DEEP_OCEAN } from '~/render/mapPalette'
+import { DEEP_OCEAN, SHELF_WATER } from '~/render/mapPalette'
 import { LUT_HEIGHT, LUT_WIDTH, type ProvinceLut } from '~/render/provinceLut'
+import type { DepthField } from '~/render/bathymetry'
 import { NO_PROVINCE, type ProvinceIdMap } from '~/render/provinceIds'
 
 const VERTEX = /* glsl */ `
@@ -41,7 +44,9 @@ const FRAGMENT = /* glsl */ `
 
   uniform sampler2D idMap;
   uniform sampler2D lut;
+  uniform sampler2D depthMap;
   uniform vec3 deepOcean;
+  uniform vec3 shelfWater;
   uniform float lutWidth;
   uniform float hovered;
   uniform vec2 texel;
@@ -63,7 +68,14 @@ const FRAGMENT = /* glsl */ `
     float id = idAt(vUv);
 
     if (id < 0.0) {
-      gl_FragColor = vec4(deepOcean, 1.0);
+      /*
+       * Pita pirus di paparan dangkal adalah hal paling mencolok di peta
+       * rujukan, dan ia mengerjakan sesuatu yang nyata: di kepulauan, perairan
+       * dangkal adalah tempat pelabuhan, pendaratan, dan blokade terjadi.
+       * Mewarnai seluruh laut rata membuang informasi itu.
+       */
+      float depth = texture2D(depthMap, vUv).r;
+      gl_FragColor = vec4(mix(shelfWater, deepOcean, smoothstep(0.0, 0.35, depth)), 1.0);
       return;
     }
 
@@ -159,7 +171,9 @@ export class MapView {
       uniforms: {
         idMap: { value: null as Texture | null },
         lut: { value: this.#lutTexture },
+        depthMap: { value: null as Texture | null },
         deepOcean: { value: [DEEP_OCEAN.r, DEEP_OCEAN.g, DEEP_OCEAN.b] },
+        shelfWater: { value: [SHELF_WATER.r, SHELF_WATER.g, SHELF_WATER.b] },
         lutWidth: { value: LUT_WIDTH },
         hovered: { value: -1 },
         texel: { value: [1 / 4096, 1 / 2048] },
@@ -167,6 +181,20 @@ export class MapView {
     })
 
     this.#scene.add(new Mesh(new PlaneGeometry(2, 1), this.#material))
+  }
+
+  setDepthField(field: DepthField): void {
+    const texture = new DataTexture(field.depth, field.width, field.height, RedFormat)
+    texture.magFilter = LinearFilter
+    texture.minFilter = LinearFilter
+    texture.generateMipmaps = false
+    texture.colorSpace = NoColorSpace
+    texture.needsUpdate = true
+
+    /* Batimetri dibaca dengan penyaringan linear, kebalikan dari tekstur id:
+       di sini interpolasi justru diinginkan supaya batas antar lembar
+       kedalaman tidak terlihat sebagai tangga. */
+    this.#material.uniforms.depthMap!.value = texture
   }
 
   async loadIdTexture(url: string): Promise<void> {
@@ -276,7 +304,9 @@ export class MapView {
     const x = ((planeX - (this.#centre.x - halfWidth)) / (halfWidth * 2)) * width
     const y = (((this.#centre.y + halfHeight) - planeY) / (halfHeight * 2)) * height
 
-    return { x, y, visible: x >= -80 && x <= width + 80 && y >= -20 && y <= height + 20 }
+    /* Ambang atas dibuat ketat: label yang pusatnya sedikit di atas viewport
+       tetap tergambar separuh dan menabrak bilah navigasi di atas peta. */
+    return { x, y, visible: x >= -80 && x <= width + 80 && y >= 8 && y <= height - 4 }
   }
 
   highlight(province: number): void {

@@ -1,3 +1,4 @@
+import { loadBathymetry, type DepthField } from '~/render/bathymetry'
 import { buildProvinceLut, type ProvinceLut } from '~/render/provinceLut'
 import { loadProvinceIds, NO_PROVINCE, type ProvinceIdMap } from '~/render/provinceIds'
 import { readWorld, type WorldData } from '~/sim/data/WorldFile'
@@ -14,6 +15,7 @@ export interface LoadedMap {
   readonly idMap: ProvinceIdMap
   readonly lut: ProvinceLut
   readonly cities: readonly MapLabel[]
+  readonly depth: DepthField
   readonly nameOf: (province: number) => string
   readonly nationOf: (province: number) => string
 }
@@ -26,11 +28,12 @@ export interface LoadedMap {
  * data, bukan urusan panel terhadap simulasi.
  */
 export async function loadMap(playerTag: string): Promise<LoadedMap> {
-  const [worldBytes, idMap, geo, centres] = await Promise.all([
+  const [worldBytes, idMap, geo, centres, depth] = await Promise.all([
     fetch('/data/world.bin').then((r) => r.arrayBuffer()),
     loadProvinceIds('/data/province-ids.png'),
     fetch('/data/provinces.geojson').then((r) => r.json() as Promise<GeoJson>),
     fetch('/data/province-centres.json').then((r) => r.json() as Promise<Centres>),
+    loadBathymetry('/data/bathymetry.bin'),
   ])
 
   const world = readWorld(worldBytes)
@@ -74,6 +77,7 @@ export async function loadMap(playerTag: string): Promise<LoadedMap> {
     idMap,
     lut,
     cities,
+    depth,
     nameOf: (province) => names[province] ?? '',
     nationOf: (province) => nations[province] ?? '',
   }

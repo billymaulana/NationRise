@@ -62,6 +62,7 @@ onMounted(async () => {
   try {
     const map = await loadMap('IDN')
     const created = new MapView({ canvas: element, idMap: map.idMap, lut: map.lut })
+    created.setDepthField(map.depth)
     await created.loadIdTexture('/data/province-ids.png')
 
     const { width, height } = size()
@@ -190,7 +191,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="host" class="relative h-full w-full">
+  <div ref="host" class="relative h-full w-full overflow-hidden">
     <canvas ref="canvas" class="block h-full w-full cursor-crosshair" />
 
     <div
