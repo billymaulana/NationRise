@@ -10,9 +10,11 @@ export.cfg
 export_presets.cfg
 *.translation
 
-# Generated map data, rebuilt by the pipeline
+# Generated map data, rebuilt by the pipeline in minutes.
+# Only the allocation table is kept: it encodes a design decision, not output.
 game/data/
-pipeline/out/geometry-full.json
+pipeline/out/*
+!pipeline/out/allocation.json
 
 # Pipeline
 pipeline/raw/
