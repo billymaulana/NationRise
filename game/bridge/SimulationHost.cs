@@ -4,6 +4,8 @@ using NationRise.Core.Data;
 using NationRise.Core.Economy;
 using GameResource = NationRise.Core.Economy.Resource;
 using NationRise.Core.Ai;
+using NationRise.Core.Buildings;
+using NationRise.Core.Research;
 using NationRise.Core.Diplomacy;
 using NationRise.Core.Military;
 using System.Linq;
@@ -32,6 +34,8 @@ public sealed partial class SimulationHost : Node
     private WorldData? _data;
     private Stockpile? _stockpile;
     private EconomyTick? _economy;
+    private CityBuildings? _buildings;
+    private ResearchQueue? _research;
     private MovementSystem? _movement;
     private WarSystem? _war;
     private NationBrain? _brain;
@@ -65,6 +69,8 @@ public sealed partial class SimulationHost : Node
 
         _stockpile = new Stockpile(_world.Nations.Count);
         _economy = new EconomyTick(_world, _stockpile);
+        _buildings = new CityBuildings(_world, _stockpile);
+        _research = new ResearchQueue(_world, _stockpile, _buildings);
         AssignProvinceResources();
 
         _relations = new Relations(_world.Nations.Count);
@@ -352,6 +358,108 @@ public sealed partial class SimulationHost : Node
         }
     }
 
+    /* Nations spend what they have on the cheapest thing that helps. Crude
+       compared to the war planner, but it stops the world hoarding resources
+       forever, and it exercises the same code path the player uses. */
+    private void RunNationDevelopment(long tick)
+    {
+        if (_world is null || _buildings is null || _research is null || _stockpile is null)
+        {
+            return;
+        }
+
+        if (tick % 24 != 0)
+        {
+            return;
+        }
+
+        for (int province = 0; province < _world.Provinces.Count; province++)
+        {
+            if (!_world.Provinces.IsCity[province] || _buildings.IsBuilding(province))
+            {
+                continue;
+            }
+
+            foreach (BuildingType type in new[]
+            {
+                BuildingType.ArmsIndustry, BuildingType.RecruitingOffice, BuildingType.ArmyBase,
+            })
+            {
+                try
+                {
+                    _buildings.Begin(province, type);
+                    break;
+                }
+                catch (ConstructionRejected)
+                {
+                    /* Not affordable or no slot: try the next building. */
+                }
+            }
+        }
+
+        for (int nation = 0; nation < _world.Nations.Count; nation++)
+        {
+            if (_research.ActiveCount(nation) >= ResearchQueue.Slots)
+            {
+                continue;
+            }
+
+            ResearchNode? next = _research.AvailableTo(nation).FirstOrDefault();
+            if (next is not null)
+            {
+                _research.Start(nation, next);
+            }
+        }
+    }
+
+    public int BuildingsUnderway
+    {
+        get
+        {
+            if (_world is null || _buildings is null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int i = 0; i < _world.Provinces.Count; i++)
+            {
+                if (_buildings.IsBuilding(i))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
+    public int ResearchCompleted(int nation) => _research?.CompletedFor(nation).Count ?? 0;
+
+    public int BuildingLevelsIn(int nation)
+    {
+        if (_world is null || _buildings is null)
+        {
+            return 0;
+        }
+
+        int total = 0;
+        for (int i = 0; i < _world.Provinces.Count; i++)
+        {
+            if (_world.Provinces.Controller[i] != nation)
+            {
+                continue;
+            }
+
+            foreach (BuildingType type in Enum.GetValues<BuildingType>())
+            {
+                total += _buildings.LevelOf(i, type);
+            }
+        }
+
+        return total;
+    }
+
     public Archetype ArchetypeOf(int nation) =>
         _brain?.ArchetypeOf(nation) ?? Archetype.Defender;
 
@@ -434,6 +542,9 @@ public sealed partial class SimulationHost : Node
             IssueMarchOrders(_world.Clock.Tick);
             _movement?.Tick(_armies);
             _war?.Tick(_armies);
+            _buildings?.Tick();
+            _research?.Tick();
+            RunNationDevelopment(_world.Clock.Tick);
             _world.Clock.Advance();
 
             if (_world.Clock.Date.Day != dayBefore)
