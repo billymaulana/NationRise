@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import mapshaper from 'mapshaper'
 import { useRelativePaths, OUT } from './paths.mjs'
 useRelativePaths()
 
@@ -80,7 +81,15 @@ const geometry = {
     geometry: f.geometry,
   })),
 }
-await writeFile(`${OUT}/game/provinces.geojson`, JSON.stringify(geometry))
+await writeFile(`${OUT}/geometry-full.json`, JSON.stringify(geometry))
+
+/* Full-resolution coastlines are 37 MB, most of it detail invisible at any
+   zoom a strategy map uses. Simplifying with shared topology keeps borders
+   watertight: neighbouring provinces still share the exact same arc. */
+const simplified = await mapshaper.applyCommands(
+  `-i ${OUT}/geometry-full.json -simplify weighted 4% keep-shapes -clean ` +
+  `-o out.json format=geojson precision=0.0001`, {})
+await writeFile(`${OUT}/game/provinces.geojson`, Buffer.from(simplified['out.json']))
 
 const nations = tags.map((tag, i) => ({
   index: i,
