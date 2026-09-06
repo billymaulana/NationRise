@@ -45,6 +45,7 @@ public sealed partial class SimulationHost : Node
     private ProvinceQuery? _query;
     private SupplySystem? _supply;
     private Blockade? _blockade;
+    private StanceSystem? _stances;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -95,6 +96,7 @@ public sealed partial class SimulationHost : Node
         _supply = new SupplySystem(_world, _data.Land, _data.Sea);
         _supply.RecomputeAll();
         _blockade = new Blockade(_world, _relations, _data.Sea);
+        _stances = new StanceSystem(_world, _supply);
 
         _victory = new VictoryTracker(
             _world, _world.Nations.IndexOf("IDN"), CampaignPreset.Of(CampaignLength.Standard));
@@ -107,7 +109,14 @@ public sealed partial class SimulationHost : Node
         };
         _brain.AssignArchetypes();
         _planner = new WarPlanner(_world, _relations, _data.Land);
-        _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed));
+        /* Set at construction rather than afterwards: assigning to a nullable
+           field further down compiles happily even when the field is still
+           null, and the battles then run without supply or stance. */
+        _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed))
+        {
+            Supply = _supply,
+            Stances = _stances,
+        };
         _movement = new MovementSystem(_world, _data.Land);
         _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
 
@@ -959,6 +968,7 @@ public sealed partial class SimulationHost : Node
             _research?.Tick();
             _victory?.Tick();
             _supply?.Tick();
+            _stances?.Tick();
 
             /* Blockades follow fleet movement, so they are recomputed on the
                same cadence as supply rather than every tick. */

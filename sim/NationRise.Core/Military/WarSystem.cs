@@ -24,6 +24,11 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
     private readonly Conquest _conquest = new(world);
     private readonly List<BattleReport> _reports = [];
 
+    /* Optional so the war system can be constructed and tested on its own, but
+       once attached these decide as much of a battle as the unit ratings do. */
+    public SupplySystem? Supply { get; set; }
+    public StanceSystem? Stances { get; set; }
+
     public IReadOnlyList<BattleReport> LastReports => _reports;
     public IReadOnlyList<ConquestEvent> LastConquests => _conquest.RecentEvents;
 
@@ -81,7 +86,9 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
                 ushort controller = world.Provinces.Controller[province];
                 (Army attacker, Army defender) = b.Nation == controller ? (a, b) : (b, a);
 
-                CombatResult result = _combat.ResolveHour(attacker, defender, terrain, world.Clock.Tick);
+                CombatResult result = _combat.ResolveHour(
+                    attacker, defender, terrain, world.Clock.Tick,
+                    ModifiersFor(attacker, defender, province, terrain));
 
                 _reports.Add(new BattleReport(
                     province, attacker.Nation, defender.Nation,
@@ -105,5 +112,39 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
 
             _conquest.TryCapture(army, present);
         }
+    }
+
+    private CombatModifiers ModifiersFor(Army attacker, Army defender, int province, Terrain terrain)
+    {
+        CombatModifiers mods = CombatModifiers.None;
+
+        /* Each side's output is driven by the ratings it is actually using, so
+           the attacker's supply scales its attack and the defender's scales its
+           defence. Feeding the attack multiplier to both would punish a cut-off
+           garrison twice. */
+        if (Supply is not null)
+        {
+            mods = mods
+                .WithAttackerAttack(Supply.AttackMultiplierForStackIn(attacker.Nation, attacker.Province))
+                .WithDefenderAttack(Supply.DefenceMultiplierForStackIn(defender.Nation, defender.Province));
+        }
+
+        if (Stances is not null)
+        {
+            bool inCity = world.Provinces.IsCity[province];
+
+            mods = mods
+                .WithAttackerAttack(Stances.AttackMultiplierFor(attacker.Id, terrain))
+                .WithAttackerDamageTaken(Stances.DamageTakenMultiplierFor(attacker.Id))
+                .WithDefenderAttack(Stances.AttackMultiplierFor(defender.Id, terrain))
+                .WithDefenderDamageTaken(Stances.DamageTakenMultiplierFor(defender.Id));
+
+            if (inCity)
+            {
+                mods = mods.WithAttackerAttack(Stances.CityAssaultMultiplierFor(attacker.Id));
+            }
+        }
+
+        return mods;
     }
 }

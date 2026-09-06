@@ -41,7 +41,10 @@ public sealed partial class Screenshot : Node
                 : $"Load MISMATCH: expected {_pointsAtSave}, got {after}.");
         }
 
-        if (_frame == FrameToCapture - 60 && host is not null)
+        /* Nine hundred frames of margin, not sixty: these frames carry the whole
+           simulation, so the panel needs far more of them than a UI-only frame
+           count would suggest before its content reaches the viewport texture. */
+        if (_frame == FrameToCapture - 900 && host is not null)
         {
             ExerciseOrderFlow(host);
         }
@@ -82,10 +85,7 @@ public sealed partial class Screenshot : Node
         int army = host.PlayerArmyAt(home);
         int target = FarthestHostileProvince(host, home);
 
-        var provincePanel = GetNodeOrNull<Ui.ProvincePanel>("/root/Main/Hud/ProvincePanel");
-        provincePanel?.Show(home);
-        GD.Print($"ProvincePanel: found={provincePanel is not null}, visible={provincePanel?.Visible}, " +
-                 $"size={provincePanel?.Size}, pos={provincePanel?.GlobalPosition}");
+        GetNodeOrNull<Ui.ProvincePanel>("/root/Main/Hud/ProvincePanel")?.Show(home);
 
         var command = GetNodeOrNull<Ui.ArmyCommand>("/root/Main/ArmyCommand");
         if (command is null || target < 0)
@@ -96,10 +96,6 @@ public sealed partial class Screenshot : Node
 
         command.OnTargeted(home);
         command.OnTargeted(target);
-
-        var battlePanel = GetNodeOrNull<Ui.BattlePreviewPanel>("/root/Main/Hud/BattlePreviewPanel");
-        GD.Print($"BattlePanel: found={battlePanel is not null}, visible={battlePanel?.Visible}, " +
-                 $"size={battlePanel?.Size}, pos={battlePanel?.GlobalPosition}");
 
         Bridge.MovePlan? plan = host.PlanMove(army, target);
         GD.Print(plan is null

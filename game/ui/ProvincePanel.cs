@@ -18,8 +18,6 @@ public sealed partial class ProvincePanel : PanelContainer
         _label = new Label { Text = string.Empty };
         _label.AddThemeFontSizeOverride("font_size", 15);
 
-        /* PanelContainer ships with a transparent style in a bare project, so
-           the panel would draw nothing at all without one of its own. */
         var background = new StyleBoxFlat
         {
             BgColor = new Color(0.07f, 0.09f, 0.12f, 0.92f),
@@ -39,9 +37,7 @@ public sealed partial class ProvincePanel : PanelContainer
 
         /* Absolute placement rather than a right anchor: a PanelContainer sizes
            itself to its text, so anchoring its left edge to the right of the
-           screen pushes it off-screen entirely. Setting only OffsetLeft/Top
-           leaves the right and bottom offsets at zero, which yields an inverted
-           rect that reports the right position and draws nothing. */
+           screen pushes it off-screen entirely. */
         SetAnchorsPreset(LayoutPreset.TopLeft);
         CustomMinimumSize = new Vector2(300, 0);
         Position = new Vector2(980, 40);

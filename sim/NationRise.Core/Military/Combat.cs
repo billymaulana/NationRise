@@ -61,7 +61,12 @@ public sealed class Combat(DeterministicRandom random)
         return total * terrainModifier * StackPenalty(army.Count);
     }
 
-    public CombatResult ResolveHour(Army attacker, Army defender, Terrain terrain, long tick = long.MaxValue)
+    public CombatResult ResolveHour(
+        Army attacker,
+        Army defender,
+        Terrain terrain,
+        long tick = long.MaxValue,
+        CombatModifiers? modifiers = null)
     {
         ArgumentNullException.ThrowIfNull(attacker);
         ArgumentNullException.ThrowIfNull(defender);
@@ -89,8 +94,14 @@ public sealed class Combat(DeterministicRandom random)
             toAttacker += StrengthOf(defender, armour, terrain, attacking: false);
         }
 
-        toDefender = Roll(toDefender * LandingModifier(attacker, tick));
-        toAttacker = Roll(toAttacker);
+        CombatModifiers mods = modifiers ?? CombatModifiers.None;
+
+        toDefender = Roll(toDefender
+            * LandingModifier(attacker, tick)
+            * mods.AttackerAttack
+            * mods.DefenderDamageTaken);
+
+        toAttacker = Roll(toAttacker * mods.DefenderAttack * mods.AttackerDamageTaken);
 
         Distribute(defender, toDefender);
         Distribute(attacker, toAttacker);

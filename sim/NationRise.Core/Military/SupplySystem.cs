@@ -102,6 +102,62 @@ public sealed class SupplySystem
             : _statusBeforeCutOff[province];
     }
 
+    /*
+       Supply for a stack standing on ground its nation does not control. The
+       province's own status answers the defender's question, not the invader's:
+       an Australian brigade in Java is not fed by Indonesian cities. The line
+       runs back through whatever neighbouring province its own nation holds,
+       which is why an advance that outruns its captures goes hungry.
+    */
+    public SupplyStatus StatusForStackIn(ushort nation, int province)
+    {
+        if (_world.Provinces.Controller[province] == nation)
+        {
+            return EffectiveStatusOf(province);
+        }
+
+        int best = Unreachable;
+        best = NearestFriendlyHop(_land.NeighboursOf(province), nation, best);
+        best = NearestFriendlyHop(_sea.NeighboursOf(province), nation, best);
+
+        if (best == Unreachable)
+        {
+            return SupplyStatus.CutOff;
+        }
+
+        return best + 1 <= Range ? SupplyStatus.Supplied : SupplyStatus.Low;
+    }
+
+    public float AttackMultiplierForStackIn(ushort nation, int province) =>
+        StatusForStackIn(nation, province) switch
+        {
+            SupplyStatus.Low => LowAttack,
+            SupplyStatus.CutOff => CutOffAttack,
+            _ => 1f,
+        };
+
+    public float DefenceMultiplierForStackIn(ushort nation, int province) =>
+        StatusForStackIn(nation, province) == SupplyStatus.CutOff ? CutOffDefence : 1f;
+
+    private int NearestFriendlyHop(ReadOnlySpan<ushort> neighbours, ushort nation, int best)
+    {
+        foreach (ushort neighbour in neighbours)
+        {
+            if (_world.Provinces.Controller[neighbour] != nation)
+            {
+                continue;
+            }
+
+            int hops = _hops[neighbour];
+            if (hops != Unreachable && (best == Unreachable || hops < best))
+            {
+                best = hops;
+            }
+        }
+
+        return best;
+    }
+
     public long GraceRemainingOf(int province)
     {
         if (_status[province] != SupplyStatus.CutOff)
