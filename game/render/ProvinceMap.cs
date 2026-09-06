@@ -23,8 +23,13 @@ public sealed partial class ProvinceMap : Node3D
     private const float CoastHazeHeight = -0.004f;
     private const float CoastHeight = 0.014f;
     private const float FrontierHeight = 0.018f;
+    private const float SettlementHeight = 0.012f;
 
     [Export] public float SeaDepth { get; set; } = -0.05f;
+
+    /* Below this the camera is close enough that street sketches and ridge
+       marks read as terrain; above it they collapse into scratches. */
+    [Export] public float DetailZoom { get; set; } = 5.0f;
 
     private readonly List<int> _triangleProvince = [];
     private readonly List<float> _vertexLatitude = [];
@@ -36,10 +41,15 @@ public sealed partial class ProvinceMap : Node3D
     private Vector3[] _vertices = [];
     private SharedEdge[] _sharedEdges = [];
     private int _ownershipStamp = -1;
+    private bool _settlementsBuilt;
+    private MeshInstance3D? _roads;
+    private MeshInstance3D? _ridges;
+    private MapCamera? _camera;
 
     public int ProvinceCount { get; private set; }
 
     private Vector3[] _centres = [];
+    private float[] _radius = [];
 
     public Vector3[] ProvinceCentres => _centres;
 
@@ -101,7 +111,135 @@ public sealed partial class ProvinceMap : Node3D
         }
 
         RebuildFrontiers(owner, highlightNation);
+
+        if (!_settlementsBuilt)
+        {
+            _settlementsBuilt = true;
+            BuildSettlements(isCity, terrain);
+        }
     }
+
+    /*
+       Cities are drawn as a sketch of their road network and mountains as a
+       scatter of ridge marks, the way the reference maps do it. Both are pure
+       decoration, but they are the difference between ground that looks
+       inhabited and a polygon that happens to be labelled: at strategy zoom
+       nobody reads a city from its fill colour.
+
+       Built once, from the first ownership pass, because neither depends on who
+       holds the ground.
+    */
+    private void BuildSettlements(bool[] isCity, byte[] terrain)
+    {
+        var roads = new List<Vector3>();
+        var ridges = new List<Vector3>();
+
+        for (int province = 0; province < _centres.Length; province++)
+        {
+            Vector3 centre = _centres[province];
+            if (centre == Vector3.Zero)
+            {
+                continue;
+            }
+
+            float reach = province < _radius.Length ? _radius[province] : 0f;
+            if (reach <= 0f)
+            {
+                continue;
+            }
+
+            if (province < isCity.Length && isCity[province])
+            {
+                AppendRoadWeb(roads, centre, province, reach);
+                continue;
+            }
+
+            var kind = (NationRise.Core.World.Terrain)(province < terrain.Length ? terrain[province] : 0);
+            if (kind is NationRise.Core.World.Terrain.Mountains or NationRise.Core.World.Terrain.Hills)
+            {
+                AppendRidgeMarks(ridges, centre, province, reach, kind == NationRise.Core.World.Terrain.Mountains);
+            }
+        }
+
+        _roads = AddLines(roads, MapPalette.RoadSketch, SettlementHeight);
+        _ridges = AddLines(ridges, MapPalette.RidgeMark, SettlementHeight);
+
+        GD.Print($"Settlement sketch: {roads.Count / 2} road segments, {ridges.Count / 2} ridge marks.");
+    }
+
+    /* Spokes leaving the centre with a kink partway out, plus a broken ring.
+       Roads radiate and orbit; that pair of gestures is enough for the eye to
+       read "town" without any of it being real geography. */
+    private static void AppendRoadWeb(List<Vector3> lines, Vector3 centre, int seed, float extent)
+    {
+        const int Spokes = 7;
+        float reach = extent * (0.42f + Jitter(seed, 1) * 0.22f);
+
+        for (int i = 0; i < Spokes; i++)
+        {
+            float angle = Mathf.Tau * i / Spokes + Jitter(seed, i + 2) * 0.5f;
+            float length = reach * (0.55f + Jitter(seed, i + 20) * 0.9f);
+
+            Vector3 mid = centre + Radial(angle, length * 0.5f);
+            Vector3 end = mid + Radial(angle + (Jitter(seed, i + 40) - 0.5f) * 0.7f, length * 0.5f);
+
+            lines.Add(centre);
+            lines.Add(mid);
+            lines.Add(mid);
+            lines.Add(end);
+        }
+
+        int arcStart = (int)(Jitter(seed, 60) * 8f);
+        for (int i = arcStart; i < arcStart + 5; i++)
+        {
+            float from = Mathf.Tau * i / 9f;
+            float to = Mathf.Tau * (i + 1) / 9f;
+            float radius = reach * 0.45f;
+
+            lines.Add(centre + Radial(from, radius));
+            lines.Add(centre + Radial(to, radius));
+        }
+    }
+
+    /* Chevrons, not filled triangles: an outline survives being drawn over
+       whatever colour the province happens to be. */
+    private static void AppendRidgeMarks(List<Vector3> lines, Vector3 centre, int seed, float extent, bool tall)
+    {
+        int count = tall ? 5 : 3;
+        float size = extent * (tall ? 0.19f : 0.13f);
+
+        for (int i = 0; i < count; i++)
+        {
+            float offsetAngle = Mathf.Tau * Jitter(seed, i + 3);
+            float offsetLength = Jitter(seed, i + 11) * extent * 0.55f;
+            Vector3 at = centre + Radial(offsetAngle, offsetLength);
+
+            Vector3 left = at + new Vector3(-size, 0f, size * 0.7f);
+            Vector3 peak = at + new Vector3(0f, 0f, -size * 0.8f);
+            Vector3 right = at + new Vector3(size, 0f, size * 0.7f);
+
+            lines.Add(left);
+            lines.Add(peak);
+            lines.Add(peak);
+            lines.Add(right);
+        }
+    }
+
+    private static Vector3 Radial(float angle, float length) =>
+        new(Mathf.Cos(angle) * length, 0f, Mathf.Sin(angle) * length);
+
+    /* Stable per-province variation. Deriving it from the id rather than a
+       random source keeps a town's streets in the same place across a save and
+       reload, which a player would otherwise notice immediately. */
+    private static float Jitter(int seed, int salt)
+    {
+        uint h = (uint)(seed * 73856093) ^ (uint)(salt * 19349663);
+        h ^= h >> 13;
+        h *= 0x85ebca6bu;
+        h ^= h >> 16;
+        return (h % 10000) / 10000f;
+    }
+
 
     private static void Rewrite(ArrayMesh mesh, Color[] colours)
     {
@@ -144,6 +282,7 @@ public sealed partial class ProvinceMap : Node3D
 
         ProvinceCount = provinces;
         _centres = BuildCentres(features, provinces);
+        _radius = BuildRadii(features, provinces, _centres);
         CallDeferred(nameof(FocusCameraOnPlayer));
         CallDeferred(nameof(PublishProvinceData), features.ToString());
 
@@ -302,7 +441,7 @@ public sealed partial class ProvinceMap : Node3D
             shader_type spatial;
             render_mode unshaded, cull_disabled, blend_mix, depth_draw_never;
 
-            uniform float period = 0.105;
+            uniform float period = 0.070;
             uniform float duty = 0.34;
 
             varying vec3 ground;
@@ -487,9 +626,9 @@ public sealed partial class ProvinceMap : Node3D
            another dataset and another million points; two soft rings around
            every landmass buy the same read, which is that the sea has a shelf
            and the shelf is where the ports are. */
-        AddRibbon(coast, MapPalette.OpenShelf, 0.190f, CoastHazeHeight - 0.003f, "shelf", joints: true);
-        AddRibbon(coast, MapPalette.CoastalHaze, 0.068f, CoastHazeHeight, "shallows", joints: true);
-        AddRibbon(coast, MapPalette.Coastline, 0.011f, CoastHeight, "foam");
+        AddRibbon(coast, MapPalette.OpenShelf, 0.110f, CoastHazeHeight - 0.003f, "shelf", joints: true);
+        AddRibbon(coast, MapPalette.CoastalHaze, 0.040f, CoastHazeHeight, "shallows", joints: true);
+        AddRibbon(coast, MapPalette.Coastline, 0.008f, CoastHeight, "foam");
 
         GD.Print($"Borders: {coast.Count / 2} coast, {shared.Count} shared edges.");
     }
@@ -550,11 +689,33 @@ public sealed partial class ProvinceMap : Node3D
         AddRibbonTo(_frontier, mine, MapPalette.PlayerBorder, 0.050f, FrontierHeight + 0.002f, joints: true);
     }
 
-    private void AddLines(List<Vector3> points, Color colour, float height)
+    /*
+       Street sketches and ridge marks only exist at the zoom a player reads
+       terrain at. Left on at world zoom they collapse into a field of scratches,
+       which is worse than a plain fill.
+    */
+    public override void _Process(double delta)
+    {
+        _camera ??= GetNodeOrNull<MapCamera>("/root/Main/Camera");
+        if (_camera is null || _roads is null)
+        {
+            return;
+        }
+
+        bool close = _camera.Size < DetailZoom;
+        _roads.Visible = close;
+
+        if (_ridges is not null)
+        {
+            _ridges.Visible = close;
+        }
+    }
+
+    private MeshInstance3D? AddLines(List<Vector3> points, Color colour, float height)
     {
         if (points.Count == 0)
         {
-            return;
+            return null;
         }
 
         var arrays = new Godot.Collections.Array();
@@ -564,7 +725,7 @@ public sealed partial class ProvinceMap : Node3D
         var mesh = new ArrayMesh();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, arrays);
 
-        AddChild(new MeshInstance3D
+        var instance = new MeshInstance3D
         {
             Mesh = mesh,
             Position = new Vector3(0f, height, 0f),
@@ -574,7 +735,10 @@ public sealed partial class ProvinceMap : Node3D
                 ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
                 Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             },
-        });
+        };
+
+        AddChild(instance);
+        return instance;
     }
 
     private void AddRibbon(
@@ -725,6 +889,30 @@ public sealed partial class ProvinceMap : Node3D
         float x = (int)(key >> 32) / 2000f;
         float y = (int)(uint)key / 2000f;
         return new Vector3(x * DegreesToUnits, 0f, -y * DegreesToUnits);
+    }
+
+    /* How far a province reaches from its own centre, used to size the sketch
+       drawn inside it. A fixed size would give a Siberian oblast the same town
+       as Singapore. */
+    private static float[] BuildRadii(JsonElement features, int provinceCount, Vector3[] centres)
+    {
+        var radii = new float[provinceCount];
+
+        foreach (JsonElement feature in features.EnumerateArray())
+        {
+            int id = feature.GetProperty("properties").GetProperty("id").GetInt32();
+
+            foreach (Ring ring in Rings(feature.GetProperty("geometry")))
+            {
+                foreach (Vector2 p in ring.Outer)
+                {
+                    var at = new Vector3(p.X * DegreesToUnits, 0f, -p.Y * DegreesToUnits);
+                    radii[id] = MathF.Max(radii[id], at.DistanceTo(centres[id]));
+                }
+            }
+        }
+
+        return radii;
     }
 
     private static Vector3[] BuildCentres(JsonElement features, int provinceCount)

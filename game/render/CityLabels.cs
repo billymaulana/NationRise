@@ -19,6 +19,9 @@ public sealed partial class CityLabels : Node3D
     [Export] public float ShowAllBelowZoom { get; set; } = 8.0f;
     [Export] public int LabelSize { get; set; } = 32;
 
+    private const float ReferenceZoom = 8f;
+    private const float BasePixelSize = 0.0042f;
+
     private readonly List<Placed> _labels = [];
     private MapCamera? _camera;
     private float _lastZoom = -1f;
@@ -83,7 +86,7 @@ public sealed partial class CityLabels : Node3D
                 NoDepthTest = true,
                 Position = new Vector3(centre.X * DegreesToUnits, 0.06f, -centre.Y * DegreesToUnits),
                 RotationDegrees = new Vector3(-90f, 0f, 0f),
-                PixelSize = 0.0042f,
+                PixelSize = BasePixelSize,
             };
 
             AddChild(label);
@@ -91,7 +94,7 @@ public sealed partial class CityLabels : Node3D
             /* Half-width in world units at PixelSize 1: the glyph advance of
                this font averages close to half its size, which is near enough
                to keep names from colliding. */
-            float halfWidth = label.Text.Length * LabelSize * 0.25f * label.PixelSize;
+            float halfWidth = label.Text.Length * LabelSize * 0.25f * BasePixelSize;
             _labels.Add(new Placed(label, population, isPlayer, label.Position, halfWidth));
         }
     }
@@ -162,9 +165,17 @@ public sealed partial class CityLabels : Node3D
             _ => 7,
         };
 
-        /* Type is drawn at a fixed pixel size, so the ground it covers grows in
-           proportion to how much ground the viewport shows. */
-        float scale = zoom / 8f;
+        /* Label3D sizes its text in world units, so a name drawn at a fixed
+           PixelSize grows with the terrain as the camera comes in and a city
+           name ends up wider than the island it sits on. Scaling the other way
+           holds it at a constant size on screen, which is what an atlas does
+           and what the reference maps do. */
+        float scale = zoom / ReferenceZoom;
+
+        foreach (Placed label in _labels)
+        {
+            label.Node.PixelSize = BasePixelSize * scale;
+        }
         var taken = new List<(Vector3 At, float HalfWidth)>(_labels.Count);
 
         foreach (Placed label in Ordered())
@@ -178,7 +189,7 @@ public sealed partial class CityLabels : Node3D
             }
 
             float half = label.Width * scale;
-            float height = LabelSize * 0.5f * label.Node.PixelSize * scale;
+            float height = LabelSize * 0.5f * BasePixelSize * scale;
 
             bool clear = true;
             foreach ((Vector3 at, float otherHalf) in taken)

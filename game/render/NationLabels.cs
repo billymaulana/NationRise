@@ -19,7 +19,9 @@ public sealed partial class NationLabels : Node3D
 
     private const string NamesPath = "res://data/nations.json";
 
-    private readonly List<(Label3D Node, int Provinces)> _labels = [];
+    private const float ReferenceZoom = 8f;
+
+    private readonly List<(Label3D Node, int Provinces, float BasePixelSize)> _labels = [];
     private Dictionary<string, string> _names = [];
     private MapCamera? _camera;
     private bool _built;
@@ -45,9 +47,10 @@ public sealed partial class NationLabels : Node3D
         /* Big countries keep their name a little longer on the way in, because
            their name is still the answer to "where am I" at a zoom where a
            small country's is just clutter. */
-        foreach ((Label3D node, int provinces) in _labels)
+        foreach ((Label3D node, int provinces, float basePixelSize) in _labels)
         {
             node.Visible = wide || (zoom >= HideBelowZoom * 0.55f && provinces >= 25);
+            node.PixelSize = basePixelSize * zoom / ReferenceZoom;
         }
     }
 
@@ -122,12 +125,17 @@ public sealed partial class NationLabels : Node3D
                 /* Larger countries get larger type. Scaling by the square root
                    keeps Russia from dwarfing everything else the way a linear
                    scale would. */
-                PixelSize = 0.0042f * Mathf.Clamp(Mathf.Sqrt(counts[nation]) * 0.28f, 0.85f, 2.6f),
                 Visible = false,
             };
 
+            /* Held on screen at a constant size: a country name is a caption,
+               and a caption that grows with the terrain stops being readable
+               the moment the player zooms in. */
+            float basePixelSize = 0.0042f * Mathf.Clamp(Mathf.Sqrt(counts[nation]) * 0.28f, 0.85f, 2.6f);
+            label.PixelSize = basePixelSize;
+
             AddChild(label);
-            _labels.Add((label, counts[nation]));
+            _labels.Add((label, counts[nation], basePixelSize));
         }
 
         GD.Print($"Nation labels: {_labels.Count}.");

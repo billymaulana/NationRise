@@ -22,6 +22,8 @@ public static class MapPalette
     public static readonly Color CoastalHaze = new(0.31f, 0.79f, 0.77f, 0.85f);
     public static readonly Color OpenShelf = new(0.15f, 0.48f, 0.55f, 0.60f);
     public static readonly Color ProvinceBorder = new(0.08f, 0.10f, 0.11f, 0.34f);
+    public static readonly Color RoadSketch = new(0.93f, 0.94f, 0.92f, 0.40f);
+    public static readonly Color RidgeMark = new(0.72f, 0.72f, 0.70f, 0.30f);
     public static readonly Color NationBorder = new(0.93f, 0.95f, 0.94f, 0.80f);
     public static readonly Color PlayerBorder = new(1.00f, 0.72f, 0.38f, 0.95f);
 
