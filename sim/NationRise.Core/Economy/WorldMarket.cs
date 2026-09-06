@@ -40,6 +40,12 @@ public sealed class WorldMarket(Stockpile stockpile)
     public const long MaxDailyShiftPermille = 120;
     public const long PriceImpactPercent = 50;
 
+    /* Access, not price, is what a blockade takes away. A cut-off nation still
+       sees the world price but can only move a quarter of the volume, which is
+       why holding the straits matters more than holding the treasury. */
+    public const long BaseAccessPercent = 75;
+    public const long BlockadedAccessPercent = 25;
+
     private readonly long[] _price = OpeningPrices();
     private readonly long[] _dayOpenPrice = OpeningPrices();
     private readonly long[] _boughtToday = new long[ResourceInfo.Count];
@@ -72,11 +78,25 @@ public sealed class WorldMarket(Stockpile stockpile)
 
     public long PriceOf(Resource resource) => _price[(int)resource];
 
+    /* Rest of World volume is deliberately fixed rather than elastic to price.
+       Making it scale was tried and reverted: the daily cap of 120 per mille
+       already keeps the hard band out of reach, so elasticity bought almost no
+       stability while making market depth move under the player's feet, which
+       is the opposite of what the pricing work set out to achieve. */
     public long SupplyOf(Resource resource) =>
         IsTraded(resource) ? RestOfWorldDailyVolume + _soldToday[(int)resource] : 0;
 
     public long DemandOf(Resource resource) =>
         IsTraded(resource) ? RestOfWorldDailyVolume + _boughtToday[(int)resource] : 0;
+
+    public long AccessPercentFor(bool blockaded) =>
+        blockaded ? BlockadedAccessPercent : BaseAccessPercent;
+
+    /* How much a nation can actually move today given its trade access. A
+       blockade does not change what things cost, only how much of it reaches
+       the docks. */
+    public long TradeableVolumeFor(Resource resource, bool blockaded) =>
+        AvailableOf(resource) * AccessPercentFor(blockaded) / 100;
 
     public long AvailableOf(Resource resource) =>
         Math.Max(0, SupplyOf(resource) - _boughtToday[(int)resource]);
@@ -90,6 +110,16 @@ public sealed class WorldMarket(Stockpile stockpile)
     public long QuotaLeftFor(int nation, Resource resource) => Math.Max(
         0,
         SupplyOf(resource) * DailyBuyQuotaPercent / 100 - _nationBoughtToday[Index(nation, resource)]);
+
+    /* The share quota alone still lets a nation stockpile years of supply in a
+       quiet week. Capping against actual consumption keeps buying tied to use
+       rather than to how much money happens to be lying around. */
+    public long QuotaLeftFor(int nation, Resource resource, long dailyConsumption)
+    {
+        long byShare = QuotaLeftFor(nation, resource);
+        long byUse = Math.Max(dailyConsumption * 3, RestOfWorldDailyVolume / 40);
+        return Math.Min(byShare, byUse);
+    }
 
     /* An order walks the book: it fills at the average of the price before and
        after its own impact. Filling at the pre-trade price would let a nation

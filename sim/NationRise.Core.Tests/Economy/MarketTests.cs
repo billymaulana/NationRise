@@ -548,4 +548,58 @@ public class MarketTests
 
         return (stock, market);
     }
+
+    [Fact]
+    public void BlockadeCutsVolumeNotPrice()
+    {
+        var stock = new Stockpile(1);
+        var market = new WorldMarket(stock);
+
+        long open = market.TradeableVolumeFor(Resource.Food, blockaded: false);
+        long cut = market.TradeableVolumeFor(Resource.Food, blockaded: true);
+
+        Assert.True(cut < open);
+        Assert.Equal(WorldMarket.BlockadedAccessPercent, market.AccessPercentFor(blockaded: true));
+        Assert.Equal(WorldMarket.BaseAccessPercent, market.AccessPercentFor(blockaded: false));
+
+        /* The price a blockaded nation sees is unchanged: what it loses is the
+           ability to move goods, which is why holding a strait beats holding
+           a treasury. */
+        Assert.Equal(WorldMarket.BasePriceOf(Resource.Food), market.PriceOf(Resource.Food));
+    }
+
+    [Fact]
+    public void ConsumptionCapsHoardingBelowTheShareQuota()
+    {
+        var stock = new Stockpile(2);
+        stock.Add(0, Resource.Money, 10_000_000);
+        var market = new WorldMarket(stock);
+
+        long byShare = market.QuotaLeftFor(0, Resource.Food);
+        long modest = market.QuotaLeftFor(0, Resource.Food, dailyConsumption: 100);
+
+        Assert.True(modest < byShare);
+        Assert.Equal(300, modest);
+    }
+
+    [Fact]
+    public void HeavyConsumersStillHitTheShareQuotaFirst()
+    {
+        var stock = new Stockpile(2);
+        var market = new WorldMarket(stock);
+
+        long byShare = market.QuotaLeftFor(0, Resource.Food);
+        long hungry = market.QuotaLeftFor(0, Resource.Food, dailyConsumption: 1_000_000);
+
+        Assert.Equal(byShare, hungry);
+    }
+
+    [Fact]
+    public void EvenNationsThatConsumeNothingKeepAFloor()
+    {
+        var stock = new Stockpile(2);
+        var market = new WorldMarket(stock);
+
+        Assert.True(market.QuotaLeftFor(0, Resource.Food, dailyConsumption: 0) > 0);
+    }
 }
