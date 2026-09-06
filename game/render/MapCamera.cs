@@ -9,6 +9,7 @@ namespace NationRise.Game.Render;
 */
 public sealed partial class MapCamera : Camera3D
 {
+    [Export] public float HomeZoom { get; set; } = 7.0f;
     [Export] public float MinZoom { get; set; } = 2.0f;
     [Export] public float MaxZoom { get; set; } = 40.0f;
     [Export] public float ZoomStep { get; set; } = 1.15f;
@@ -21,7 +22,7 @@ public sealed partial class MapCamera : Camera3D
     public override void _Ready()
     {
         Projection = ProjectionType.Orthogonal;
-        Size = 22.0f;
+        Size = HomeZoom;
         Position = new Vector3(0f, 14f, 0f);
         RotationDegrees = new Vector3(-90f, 0f, 0f);
     }
@@ -70,6 +71,12 @@ public sealed partial class MapCamera : Camera3D
         position.Y,
         Mathf.Clamp(position.Z, -PanLimitZ, PanLimitZ));
 
-    public void FocusOn(Vector3 target) =>
+    /* Opening on the player's own country rather than the middle of the
+       Atlantic: the first thing a strategy map should answer is "where am I". */
+    public void FocusOn(Vector3 target)
+    {
         Position = Clamp(new Vector3(target.X, Position.Y, target.Z));
+    }
+
+    public void ResetZoom() => Size = HomeZoom;
 }

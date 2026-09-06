@@ -3,6 +3,7 @@ using GodotFile = Godot.FileAccess;
 using NationRise.Core.Data;
 using NationRise.Core.Economy;
 using GameResource = NationRise.Core.Economy.Resource;
+using NationRise.Core.Ai;
 using NationRise.Core.Diplomacy;
 using NationRise.Core.Military;
 using System.Linq;
@@ -30,6 +31,8 @@ public sealed partial class SimulationHost : Node
     private EconomyTick? _economy;
     private MovementSystem? _movement;
     private WarSystem? _war;
+    private NationBrain? _brain;
+    private Momentum? _momentum;
     private Relations? _relations;
     private Pathfinder? _pathfinder;
     private readonly Dictionary<int, Army> _armies = [];
@@ -61,6 +64,14 @@ public sealed partial class SimulationHost : Node
         AssignProvinceResources();
 
         _relations = new Relations(_world.Nations.Count);
+        _momentum = new Momentum();
+        _brain = new NationBrain(
+            _world, _relations, _momentum,
+            new NationRise.Core.Determinism.DeterministicRandom(Seed))
+        {
+            Graph = _data.Land,
+        };
+        _brain.AssignArchetypes();
         _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed));
         _movement = new MovementSystem(_world);
         _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
@@ -199,6 +210,53 @@ public sealed partial class SimulationHost : Node
         WorldSnapshot.From(World, _armies.Values.Select(a =>
             new ArmyView(a.Id, a.Nation, a.Province, a.Count, a.Health)));
 
+    /* Nations think on a stagger: spreading 247 brains across a week of game
+       time keeps any single tick cheap and stops the whole world reacting to
+       the same event in lockstep. */
+    private void ThinkForNations(long tick)
+    {
+        if (_brain is null || _world is null)
+        {
+            return;
+        }
+
+        for (int nation = 0; nation < _world.Nations.Count; nation++)
+        {
+            if ((tick + nation) % 168 == 0)
+            {
+                _brain.Think(nation, tick);
+            }
+        }
+    }
+
+    public Archetype ArchetypeOf(int nation) =>
+        _brain?.ArchetypeOf(nation) ?? Archetype.Defender;
+
+    public int ActiveWars
+    {
+        get
+        {
+            if (_relations is null || _world is null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int a = 0; a < _world.Nations.Count; a++)
+            {
+                for (int b = a + 1; b < _world.Nations.Count; b++)
+                {
+                    if (_relations.AtWar(a, b))
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+    }
+
     public Relations Relations =>
         _relations ?? throw new InvalidOperationException("World not loaded.");
 
@@ -239,6 +297,7 @@ public sealed partial class SimulationHost : Node
         {
             _accumulator -= secondsPerTick;
             int dayBefore = _world.Clock.Date.Day;
+            ThinkForNations(_world.Clock.Tick);
             _movement?.Tick(_armies);
             _war?.Tick(_armies);
             _world.Clock.Advance();

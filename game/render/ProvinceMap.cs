@@ -91,6 +91,7 @@ public sealed partial class ProvinceMap : Node3D
 
         ProvinceCount = provinces;
         _centres = BuildCentres(features, provinces);
+        CallDeferred(nameof(FocusCameraOnPlayer));
 
         if (vertices.Count == 0)
         {
@@ -126,6 +127,35 @@ public sealed partial class ProvinceMap : Node3D
 
     /* A plane behind everything, so land reads as land sitting in water rather
        than shapes floating on a background. */
+    private void FocusCameraOnPlayer()
+    {
+        var host = GetNodeOrNull<Bridge.SimulationHost>("/root/Main/SimulationHost");
+        var camera = GetNodeOrNull<MapCamera>("/root/Main/Camera");
+
+        if (host is null || camera is null)
+        {
+            return;
+        }
+
+        int nation = host.World.Nations.IndexOf("IDN");
+        var sum = Vector3.Zero;
+        int count = 0;
+
+        for (int i = 0; i < host.World.Provinces.Count && i < _centres.Length; i++)
+        {
+            if (host.World.Provinces.Owner[i] == nation)
+            {
+                sum += _centres[i];
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            camera.FocusOn(sum / count);
+        }
+    }
+
     private void BuildOcean()
     {
         var ocean = new MeshInstance3D

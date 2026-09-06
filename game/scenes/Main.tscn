@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://bridge/SimulationHost.cs" id="1"]
 [ext_resource type="Script" path="res://render/ProvinceMap.cs" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://ui/StatusPanel.cs" id="4"]
 [ext_resource type="Script" path="res://render/ArmyMarkers.cs" id="5"]
 [ext_resource type="Script" path="res://render/MapCamera.cs" id="6"]
+[ext_resource type="Script" path="res://render/CityLabels.cs" id="7"]
 
 [node name="Main" type="Node3D"]
 
@@ -18,6 +19,9 @@ script = ExtResource("2")
 
 [node name="ArmyMarkers" type="Node3D" parent="."]
 script = ExtResource("5")
+
+[node name="CityLabels" type="Node3D" parent="."]
+script = ExtResource("7")
 
 [node name="Camera" type="Camera3D" parent="."]
 script = ExtResource("6")

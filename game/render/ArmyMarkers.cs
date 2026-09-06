@@ -12,7 +12,7 @@ public sealed partial class ArmyMarkers : Node3D
 {
     [Export] public Color FriendlyColour { get; set; } = new(0.95f, 0.42f, 0.28f);
     [Export] public Color HostileColour { get; set; } = new(0.32f, 0.55f, 0.85f);
-    [Export] public float MarkerSize { get; set; } = 0.18f;
+    [Export] public float MarkerSize { get; set; } = 0.14f;
 
     private MultiMeshInstance3D? _instances;
     private Vector3[] _provinceCentres = [];
@@ -65,7 +65,13 @@ public sealed partial class ArmyMarkers : Node3D
 
     public override void _Ready()
     {
-        var mesh = new BoxMesh { Size = new Vector3(MarkerSize, MarkerSize, MarkerSize) };
+        /* A flat quad lying on the map rather than a cube: the marker is a
+           counter on a board, not an object standing in the terrain. */
+        var mesh = new QuadMesh
+        {
+            Size = new Vector2(MarkerSize, MarkerSize),
+            Orientation = PlaneMesh.OrientationEnum.Y,
+        };
 
         var multi = new MultiMesh
         {
