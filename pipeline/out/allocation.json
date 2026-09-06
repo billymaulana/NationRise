@@ -1,0 +1,1772 @@
+{
+  "areaWeight": 0.55,
+  "cap": 90,
+  "floor": 2,
+  "total": 2043,
+  "nations": [
+    {
+      "tag": "IND",
+      "name": "India",
+      "areaKm2": 3150744,
+      "population": 1366417754,
+      "provinces": 90
+    },
+    {
+      "tag": "CHN",
+      "name": "China",
+      "areaKm2": 9375215,
+      "population": 1397715000,
+      "provinces": 90
+    },
+    {
+      "tag": "BRA",
+      "name": "Brazil",
+      "areaKm2": 8472662,
+      "population": 211049527,
+      "provinces": 90
+    },
+    {
+      "tag": "RUS",
+      "name": "Russia",
+      "areaKm2": 16980190,
+      "population": 144373535,
+      "provinces": 90
+    },
+    {
+      "tag": "USA",
+      "name": "United States of America",
+      "areaKm2": 9464216,
+      "population": 328239523,
+      "provinces": 90
+    },
+    {
+      "tag": "CAN",
+      "name": "Canada",
+      "areaKm2": 9945628,
+      "population": 37589262,
+      "provinces": 90
+    },
+    {
+      "tag": "AUS",
+      "name": "Australia",
+      "areaKm2": 7691170,
+      "population": 25364307,
+      "provinces": 76
+    },
+    {
+      "tag": "IDN",
+      "name": "Indonesia",
+      "areaKm2": 1879826,
+      "population": 270625568,
+      "provinces": 54
+    },
+    {
+      "tag": "PAK",
+      "name": "Pakistan",
+      "areaKm2": 872939,
+      "population": 216565318,
+      "provinces": 37
+    },
+    {
+      "tag": "NGA",
+      "name": "Nigeria",
+      "areaKm2": 907498,
+      "population": 200963599,
+      "provinces": 36
+    },
+    {
+      "tag": "MEX",
+      "name": "Mexico",
+      "areaKm2": 1957845,
+      "population": 127575529,
+      "provinces": 36
+    },
+    {
+      "tag": "COD",
+      "name": "Dem. Rep. Congo",
+      "areaKm2": 2325240,
+      "population": 86790567,
+      "provinces": 33
+    },
+    {
+      "tag": "ARG",
+      "name": "Argentina",
+      "areaKm2": 2782896,
+      "population": 44938712,
+      "provinces": 32
+    },
+    {
+      "tag": "KAZ",
+      "name": "Kazakhstan",
+      "areaKm2": 2714265,
+      "population": 18513930,
+      "provinces": 28
+    },
+    {
+      "tag": "DZA",
+      "name": "Algeria",
+      "areaKm2": 2308858,
+      "population": 43053054,
+      "provinces": 27
+    },
+    {
+      "tag": "ETH",
+      "name": "Ethiopia",
+      "areaKm2": 1127375,
+      "population": 112078730,
+      "provinces": 26
+    },
+    {
+      "tag": "IRN",
+      "name": "Iran",
+      "areaKm2": 1622509,
+      "population": 82913906,
+      "provinces": 26
+    },
+    {
+      "tag": "SDN",
+      "name": "Sudan",
+      "areaKm2": 1855616,
+      "population": 42813238,
+      "provinces": 23
+    },
+    {
+      "tag": "SAU",
+      "name": "Saudi Arabia",
+      "areaKm2": 1921725,
+      "population": 34268528,
+      "provinces": 23
+    },
+    {
+      "tag": "BGD",
+      "name": "Bangladesh",
+      "areaKm2": 136904,
+      "population": 163046161,
+      "provinces": 23
+    },
+    {
+      "tag": "EGY",
+      "name": "Egypt",
+      "areaKm2": 1001058,
+      "population": 100388073,
+      "provinces": 23
+    },
+    {
+      "tag": "GRL",
+      "name": "Greenland",
+      "areaKm2": 2154380,
+      "population": 56225,
+      "provinces": 20
+    },
+    {
+      "tag": "JPN",
+      "name": "Japan",
+      "areaKm2": 373507,
+      "population": 126264931,
+      "provinces": 20
+    },
+    {
+      "tag": "ZAF",
+      "name": "South Africa",
+      "areaKm2": 1219825,
+      "population": 58558270,
+      "provinces": 19
+    },
+    {
+      "tag": "TUR",
+      "name": "Turkey",
+      "areaKm2": 780080,
+      "population": 83429615,
+      "provinces": 19
+    },
+    {
+      "tag": "TZA",
+      "name": "Tanzania",
+      "areaKm2": 941505,
+      "population": 58005463,
+      "provinces": 17
+    },
+    {
+      "tag": "COL",
+      "name": "Colombia",
+      "areaKm2": 1135118,
+      "population": 50339443,
+      "provinces": 17
+    },
+    {
+      "tag": "PHL",
+      "name": "Philippines",
+      "areaKm2": 293291,
+      "population": 108116615,
+      "provinces": 17
+    },
+    {
+      "tag": "PER",
+      "name": "Peru",
+      "areaKm2": 1289867,
+      "population": 32510453,
+      "provinces": 16
+    },
+    {
+      "tag": "VNM",
+      "name": "Vietnam",
+      "areaKm2": 328892,
+      "population": 96462106,
+      "provinces": 16
+    },
+    {
+      "tag": "LBY",
+      "name": "Libya",
+      "areaKm2": 1623759,
+      "population": 6777452,
+      "provinces": 16
+    },
+    {
+      "tag": "AGO",
+      "name": "Angola",
+      "areaKm2": 1244652,
+      "population": 31825295,
+      "provinces": 16
+    },
+    {
+      "tag": "FRA",
+      "name": "France",
+      "areaKm2": 636757,
+      "population": 67059887,
+      "provinces": 15
+    },
+    {
+      "tag": "MNG",
+      "name": "Mongolia",
+      "areaKm2": 1564664,
+      "population": 3225167,
+      "provinces": 15
+    },
+    {
+      "tag": "DEU",
+      "name": "Germany",
+      "areaKm2": 357674,
+      "population": 83132799,
+      "provinces": 15
+    },
+    {
+      "tag": "MLI",
+      "name": "Mali",
+      "areaKm2": 1252723,
+      "population": 19658031,
+      "provinces": 14
+    },
+    {
+      "tag": "THA",
+      "name": "Thailand",
+      "areaKm2": 514453,
+      "population": 69625582,
+      "provinces": 14
+    },
+    {
+      "tag": "TCD",
+      "name": "Chad",
+      "areaKm2": 1266283,
+      "population": 15946876,
+      "provinces": 14
+    },
+    {
+      "tag": "NER",
+      "name": "Niger",
+      "areaKm2": 1181303,
+      "population": 23310715,
+      "provinces": 14
+    },
+    {
+      "tag": "KEN",
+      "name": "Kenya",
+      "areaKm2": 585702,
+      "population": 52573973,
+      "provinces": 13
+    },
+    {
+      "tag": "MMR",
+      "name": "Myanmar",
+      "areaKm2": 663159,
+      "population": 54045420,
+      "provinces": 13
+    },
+    {
+      "tag": "BOL",
+      "name": "Bolivia",
+      "areaKm2": 1086808,
+      "population": 11513100,
+      "provinces": 12
+    },
+    {
+      "tag": "VEN",
+      "name": "Venezuela",
+      "areaKm2": 912684,
+      "population": 28515829,
+      "provinces": 12
+    },
+    {
+      "tag": "UKR",
+      "name": "Ukraine",
+      "areaKm2": 571999,
+      "population": 44385155,
+      "provinces": 11
+    },
+    {
+      "tag": "ESP",
+      "name": "Spain",
+      "areaKm2": 506885,
+      "population": 47076781,
+      "provinces": 11
+    },
+    {
+      "tag": "GBR",
+      "name": "United Kingdom",
+      "areaKm2": 243783,
+      "population": 66834405,
+      "provinces": 11
+    },
+    {
+      "tag": "ITA",
+      "name": "Italy",
+      "areaKm2": 301184,
+      "population": 60297396,
+      "provinces": 11
+    },
+    {
+      "tag": "MOZ",
+      "name": "Mozambique",
+      "areaKm2": 788447,
+      "population": 30366036,
+      "provinces": 11
+    },
+    {
+      "tag": "AFG",
+      "name": "Afghanistan",
+      "areaKm2": 642181,
+      "population": 38041754,
+      "provinces": 11
+    },
+    {
+      "tag": "MAR",
+      "name": "Morocco",
+      "areaKm2": 591743,
+      "population": 36471769,
+      "provinces": 10
+    },
+    {
+      "tag": "MRT",
+      "name": "Mauritania",
+      "areaKm2": 1036389,
+      "population": 4525696,
+      "provinces": 10
+    },
+    {
+      "tag": "CHL",
+      "name": "Chile",
+      "areaKm2": 736595,
+      "population": 18952038,
+      "provinces": 9
+    },
+    {
+      "tag": "UZB",
+      "name": "Uzbekistan",
+      "areaKm2": 447831,
+      "population": 33580650,
+      "provinces": 9
+    },
+    {
+      "tag": "ZMB",
+      "name": "Zambia",
+      "areaKm2": 751914,
+      "population": 17861030,
+      "provinces": 9
+    },
+    {
+      "tag": "IRQ",
+      "name": "Iraq",
+      "areaKm2": 437367,
+      "population": 39309783,
+      "provinces": 9
+    },
+    {
+      "tag": "MDG",
+      "name": "Madagascar",
+      "areaKm2": 592981,
+      "population": 26969307,
+      "provinces": 9
+    },
+    {
+      "tag": "KOR",
+      "name": "South Korea",
+      "areaKm2": 98544,
+      "population": 51709098,
+      "provinces": 8
+    },
+    {
+      "tag": "NAM",
+      "name": "Namibia",
+      "areaKm2": 822713,
+      "population": 2494530,
+      "provinces": 8
+    },
+    {
+      "tag": "POL",
+      "name": "Poland",
+      "areaKm2": 313428,
+      "population": 37970874,
+      "provinces": 8
+    },
+    {
+      "tag": "UGA",
+      "name": "Uganda",
+      "areaKm2": 241854,
+      "population": 44269594,
+      "provinces": 8
+    },
+    {
+      "tag": "CMR",
+      "name": "Cameroon",
+      "areaKm2": 464318,
+      "population": 25876380,
+      "provinces": 8
+    },
+    {
+      "tag": "YEM",
+      "name": "Yemen",
+      "areaKm2": 453075,
+      "population": 29161922,
+      "provinces": 8
+    },
+    {
+      "tag": "MYS",
+      "name": "Malaysia",
+      "areaKm2": 327885,
+      "population": 31949777,
+      "provinces": 7
+    },
+    {
+      "tag": "SDS",
+      "name": "S. Sudan",
+      "areaKm2": 626859,
+      "population": 11062113,
+      "provinces": 7
+    },
+    {
+      "tag": "SOM",
+      "name": "Somalia",
+      "areaKm2": 471815,
+      "population": 10192317.3,
+      "provinces": 6
+    },
+    {
+      "tag": "SWE",
+      "name": "Sweden",
+      "areaKm2": 446173,
+      "population": 10285453,
+      "provinces": 6
+    },
+    {
+      "tag": "CAF",
+      "name": "Central African Rep.",
+      "areaKm2": 617984,
+      "population": 4745185,
+      "provinces": 6
+    },
+    {
+      "tag": "CIV",
+      "name": "Côte d'Ivoire",
+      "areaKm2": 320677,
+      "population": 25716544,
+      "provinces": 6
+    },
+    {
+      "tag": "BWA",
+      "name": "Botswana",
+      "areaKm2": 579029,
+      "population": 2303697,
+      "provinces": 6
+    },
+    {
+      "tag": "ZWE",
+      "name": "Zimbabwe",
+      "areaKm2": 389338,
+      "population": 14645468,
+      "provinces": 6
+    },
+    {
+      "tag": "GHA",
+      "name": "Ghana",
+      "areaKm2": 238669,
+      "population": 30417856,
+      "provinces": 6
+    },
+    {
+      "tag": "PNG",
+      "name": "Papua New Guinea",
+      "areaKm2": 465147,
+      "population": 8776109,
+      "provinces": 6
+    },
+    {
+      "tag": "PRK",
+      "name": "North Korea",
+      "areaKm2": 122379,
+      "population": 25666161,
+      "provinces": 5
+    },
+    {
+      "tag": "ROU",
+      "name": "Romania",
+      "areaKm2": 236377,
+      "population": 19356544,
+      "provinces": 5
+    },
+    {
+      "tag": "ECU",
+      "name": "Ecuador",
+      "areaKm2": 255014,
+      "population": 17373662,
+      "provinces": 5
+    },
+    {
+      "tag": "PRY",
+      "name": "Paraguay",
+      "areaKm2": 399901,
+      "population": 7044636,
+      "provinces": 5
+    },
+    {
+      "tag": "TKM",
+      "name": "Turkmenistan",
+      "areaKm2": 470849,
+      "population": 5942089,
+      "provinces": 5
+    },
+    {
+      "tag": "NPL",
+      "name": "Nepal",
+      "areaKm2": 147106,
+      "population": 28608710,
+      "provinces": 5
+    },
+    {
+      "tag": "BFA",
+      "name": "Burkina Faso",
+      "areaKm2": 272769,
+      "population": 20321378,
+      "provinces": 5
+    },
+    {
+      "tag": "MWI",
+      "name": "Malawi",
+      "areaKm2": 119398,
+      "population": 18628747,
+      "provinces": 4
+    },
+    {
+      "tag": "SYR",
+      "name": "Syria",
+      "areaKm2": 185940,
+      "population": 17070135,
+      "provinces": 4
+    },
+    {
+      "tag": "COG",
+      "name": "Congo",
+      "areaKm2": 344889,
+      "population": 5380508,
+      "provinces": 4
+    },
+    {
+      "tag": "OMN",
+      "name": "Oman",
+      "areaKm2": 311213,
+      "population": 4974986,
+      "provinces": 4
+    },
+    {
+      "tag": "NOR",
+      "name": "Norway",
+      "areaKm2": 382074,
+      "population": 5347896,
+      "provinces": 4
+    },
+    {
+      "tag": "FIN",
+      "name": "Finland",
+      "areaKm2": 333059,
+      "population": 5520314,
+      "provinces": 4
+    },
+    {
+      "tag": "KHM",
+      "name": "Cambodia",
+      "areaKm2": 181060,
+      "population": 16486542,
+      "provinces": 4
+    },
+    {
+      "tag": "GIN",
+      "name": "Guinea",
+      "areaKm2": 244302,
+      "population": 12771246,
+      "provinces": 4
+    },
+    {
+      "tag": "SEN",
+      "name": "Senegal",
+      "areaKm2": 196225,
+      "population": 16296364,
+      "provinces": 4
+    },
+    {
+      "tag": "LKA",
+      "name": "Sri Lanka",
+      "areaKm2": 66291,
+      "population": 21803000,
+      "provinces": 4
+    },
+    {
+      "tag": "TWN",
+      "name": "Taiwan",
+      "areaKm2": 36198,
+      "population": 23568378,
+      "provinces": 4
+    },
+    {
+      "tag": "BLR",
+      "name": "Belarus",
+      "areaKm2": 207499,
+      "population": 9466856,
+      "provinces": 3
+    },
+    {
+      "tag": "TJK",
+      "name": "Tajikistan",
+      "areaKm2": 142239,
+      "population": 9321018,
+      "provinces": 3
+    },
+    {
+      "tag": "LAO",
+      "name": "Laos",
+      "areaKm2": 228114,
+      "population": 7169455,
+      "provinces": 3
+    },
+    {
+      "tag": "KGZ",
+      "name": "Kyrgyzstan",
+      "areaKm2": 198990,
+      "population": 6456900,
+      "provinces": 3
+    },
+    {
+      "tag": "TUN",
+      "name": "Tunisia",
+      "areaKm2": 156613,
+      "population": 11694719,
+      "provinces": 3
+    },
+    {
+      "tag": "GRC",
+      "name": "Greece",
+      "areaKm2": 131353,
+      "population": 10716322,
+      "provinces": 3
+    },
+    {
+      "tag": "NLD",
+      "name": "Netherlands",
+      "areaKm2": 37397,
+      "population": 17332850,
+      "provinces": 3
+    },
+    {
+      "tag": "BEN",
+      "name": "Benin",
+      "areaKm2": 116113,
+      "population": 11801151,
+      "provinces": 3
+    },
+    {
+      "tag": "GTM",
+      "name": "Guatemala",
+      "areaKm2": 108811,
+      "population": 16604026,
+      "provinces": 3
+    },
+    {
+      "tag": "CUB",
+      "name": "Cuba",
+      "areaKm2": 109929,
+      "population": 11333483,
+      "provinces": 3
+    },
+    {
+      "tag": "GAB",
+      "name": "Gabon",
+      "areaKm2": 259968,
+      "population": 2172579,
+      "provinces": 3
+    },
+    {
+      "tag": "NZL",
+      "name": "New Zealand",
+      "areaKm2": 268499,
+      "population": 4917000,
+      "provinces": 3
+    },
+    {
+      "tag": "ESB",
+      "name": "Dhekelia",
+      "areaKm2": 127,
+      "population": 7850,
+      "provinces": 2
+    },
+    {
+      "tag": "CYP",
+      "name": "Cyprus",
+      "areaKm2": 5395,
+      "population": 1198575,
+      "provinces": 2
+    },
+    {
+      "tag": "ISR",
+      "name": "Israel",
+      "areaKm2": 22101,
+      "population": 9053300,
+      "provinces": 2
+    },
+    {
+      "tag": "PSX",
+      "name": "Palestine",
+      "areaKm2": 6074,
+      "population": 4685306,
+      "provinces": 2
+    },
+    {
+      "tag": "LBN",
+      "name": "Lebanon",
+      "areaKm2": 10004,
+      "population": 6855713,
+      "provinces": 2
+    },
+    {
+      "tag": "SOL",
+      "name": "Somaliland",
+      "areaKm2": 167407,
+      "population": 5096159,
+      "provinces": 2
+    },
+    {
+      "tag": "SUR",
+      "name": "Suriname",
+      "areaKm2": 145123,
+      "population": 581363,
+      "provinces": 2
+    },
+    {
+      "tag": "GUY",
+      "name": "Guyana",
+      "areaKm2": 211214,
+      "population": 782766,
+      "provinces": 2
+    },
+    {
+      "tag": "SAH",
+      "name": "W. Sahara",
+      "areaKm2": 90495,
+      "population": 603253,
+      "provinces": 2
+    },
+    {
+      "tag": "CRI",
+      "name": "Costa Rica",
+      "areaKm2": 51151,
+      "population": 5047561,
+      "provinces": 2
+    },
+    {
+      "tag": "NIC",
+      "name": "Nicaragua",
+      "areaKm2": 128685,
+      "population": 6545502,
+      "provinces": 2
+    },
+    {
+      "tag": "BTN",
+      "name": "Bhutan",
+      "areaKm2": 40421,
+      "population": 763092,
+      "provinces": 2
+    },
+    {
+      "tag": "MAF",
+      "name": "St-Martin",
+      "areaKm2": 68,
+      "population": 38002,
+      "provinces": 2
+    },
+    {
+      "tag": "SXM",
+      "name": "Sint Maarten",
+      "areaKm2": 23,
+      "population": 40733,
+      "provinces": 2
+    },
+    {
+      "tag": "LTU",
+      "name": "Lithuania",
+      "areaKm2": 64939,
+      "population": 2786844,
+      "provinces": 2
+    },
+    {
+      "tag": "URY",
+      "name": "Uruguay",
+      "areaKm2": 177342,
+      "population": 3461734,
+      "provinces": 2
+    },
+    {
+      "tag": "CZE",
+      "name": "Czechia",
+      "areaKm2": 78759,
+      "population": 10669709,
+      "provinces": 2
+    },
+    {
+      "tag": "EST",
+      "name": "Estonia",
+      "areaKm2": 45819,
+      "population": 1326590,
+      "provinces": 2
+    },
+    {
+      "tag": "LVA",
+      "name": "Latvia",
+      "areaKm2": 64576,
+      "population": 1912789,
+      "provinces": 2
+    },
+    {
+      "tag": "LUX",
+      "name": "Luxembourg",
+      "areaKm2": 2608,
+      "population": 619896,
+      "provinces": 2
+    },
+    {
+      "tag": "ARE",
+      "name": "United Arab Emirates",
+      "areaKm2": 71085,
+      "population": 9770529,
+      "provinces": 2
+    },
+    {
+      "tag": "BEL",
+      "name": "Belgium",
+      "areaKm2": 30670,
+      "population": 11484055,
+      "provinces": 2
+    },
+    {
+      "tag": "GEO",
+      "name": "Georgia",
+      "areaKm2": 69571,
+      "population": 3720382,
+      "provinces": 2
+    },
+    {
+      "tag": "MKD",
+      "name": "North Macedonia",
+      "areaKm2": 25385,
+      "population": 2083459,
+      "provinces": 2
+    },
+    {
+      "tag": "ALB",
+      "name": "Albania",
+      "areaKm2": 28336,
+      "population": 2854191,
+      "provinces": 2
+    },
+    {
+      "tag": "AZE",
+      "name": "Azerbaijan",
+      "areaKm2": 86250,
+      "population": 10023318,
+      "provinces": 2
+    },
+    {
+      "tag": "KOS",
+      "name": "Kosovo",
+      "areaKm2": 10913,
+      "population": 1794248,
+      "provinces": 2
+    },
+    {
+      "tag": "ARM",
+      "name": "Armenia",
+      "areaKm2": 29588,
+      "population": 2957731,
+      "provinces": 2
+    },
+    {
+      "tag": "DNK",
+      "name": "Denmark",
+      "areaKm2": 42696,
+      "population": 5818553,
+      "provinces": 2
+    },
+    {
+      "tag": "HUN",
+      "name": "Hungary",
+      "areaKm2": 93201,
+      "population": 9769949,
+      "provinces": 2
+    },
+    {
+      "tag": "SVK",
+      "name": "Slovakia",
+      "areaKm2": 48458,
+      "population": 5454073,
+      "provinces": 2
+    },
+    {
+      "tag": "IRL",
+      "name": "Ireland",
+      "areaKm2": 69445,
+      "population": 4941444,
+      "provinces": 2
+    },
+    {
+      "tag": "SLE",
+      "name": "Sierra Leone",
+      "areaKm2": 71612,
+      "population": 7813215,
+      "provinces": 2
+    },
+    {
+      "tag": "LBR",
+      "name": "Liberia",
+      "areaKm2": 95298,
+      "population": 4937374,
+      "provinces": 2
+    },
+    {
+      "tag": "DJI",
+      "name": "Djibouti",
+      "areaKm2": 21848,
+      "population": 973560,
+      "provinces": 2
+    },
+    {
+      "tag": "ERI",
+      "name": "Eritrea",
+      "areaKm2": 122538,
+      "population": 6081196,
+      "provinces": 2
+    },
+    {
+      "tag": "AUT",
+      "name": "Austria",
+      "areaKm2": 83993,
+      "population": 8877067,
+      "provinces": 2
+    },
+    {
+      "tag": "CHE",
+      "name": "Switzerland",
+      "areaKm2": 41435,
+      "population": 8574832,
+      "provinces": 2
+    },
+    {
+      "tag": "LIE",
+      "name": "Liechtenstein",
+      "areaKm2": 137,
+      "population": 38019,
+      "provinces": 2
+    },
+    {
+      "tag": "SRB",
+      "name": "Serbia",
+      "areaKm2": 77629,
+      "population": 6944975,
+      "provinces": 2
+    },
+    {
+      "tag": "HRV",
+      "name": "Croatia",
+      "areaKm2": 55023,
+      "population": 4067500,
+      "provinces": 2
+    },
+    {
+      "tag": "SVN",
+      "name": "Slovenia",
+      "areaKm2": 20327,
+      "population": 2087946,
+      "provinces": 2
+    },
+    {
+      "tag": "QAT",
+      "name": "Qatar",
+      "areaKm2": 11150,
+      "population": 2832067,
+      "provinces": 2
+    },
+    {
+      "tag": "BGR",
+      "name": "Bulgaria",
+      "areaKm2": 112760,
+      "population": 6975761,
+      "provinces": 2
+    },
+    {
+      "tag": "SMR",
+      "name": "San Marino",
+      "areaKm2": 60,
+      "population": 33860,
+      "provinces": 2
+    },
+    {
+      "tag": "HTI",
+      "name": "Haiti",
+      "areaKm2": 26892,
+      "population": 11263077,
+      "provinces": 2
+    },
+    {
+      "tag": "DOM",
+      "name": "Dominican Rep.",
+      "areaKm2": 48440,
+      "population": 10738958,
+      "provinces": 2
+    },
+    {
+      "tag": "KWT",
+      "name": "Kuwait",
+      "areaKm2": 17474,
+      "population": 4207083,
+      "provinces": 2
+    },
+    {
+      "tag": "SLV",
+      "name": "El Salvador",
+      "areaKm2": 20539,
+      "population": 6453553,
+      "provinces": 2
+    },
+    {
+      "tag": "TLS",
+      "name": "Timor-Leste",
+      "areaKm2": 15082,
+      "population": 1293119,
+      "provinces": 2
+    },
+    {
+      "tag": "BRN",
+      "name": "Brunei",
+      "areaKm2": 5717,
+      "population": 433285,
+      "provinces": 2
+    },
+    {
+      "tag": "MCO",
+      "name": "Monaco",
+      "areaKm2": 19,
+      "population": 38964,
+      "provinces": 2
+    },
+    {
+      "tag": "SWZ",
+      "name": "eSwatini",
+      "areaKm2": 17112,
+      "population": 1148130,
+      "provinces": 2
+    },
+    {
+      "tag": "BDI",
+      "name": "Burundi",
+      "areaKm2": 27041,
+      "population": 11530580,
+      "provinces": 2
+    },
+    {
+      "tag": "RWA",
+      "name": "Rwanda",
+      "areaKm2": 25305,
+      "population": 12626950,
+      "provinces": 2
+    },
+    {
+      "tag": "AND",
+      "name": "Andorra",
+      "areaKm2": 452,
+      "population": 77142,
+      "provinces": 2
+    },
+    {
+      "tag": "MNE",
+      "name": "Montenegro",
+      "areaKm2": 13727,
+      "population": 622137,
+      "provinces": 2
+    },
+    {
+      "tag": "BIH",
+      "name": "Bosnia and Herz.",
+      "areaKm2": 51827,
+      "population": 3301000,
+      "provinces": 2
+    },
+    {
+      "tag": "USG",
+      "name": "USNB Guantanamo Bay",
+      "areaKm2": 65,
+      "population": 6000,
+      "provinces": 2
+    },
+    {
+      "tag": "HND",
+      "name": "Honduras",
+      "areaKm2": 112236,
+      "population": 9746117,
+      "provinces": 2
+    },
+    {
+      "tag": "BRI",
+      "name": "Brazilian I.",
+      "areaKm2": 3,
+      "population": 0,
+      "provinces": 2
+    },
+    {
+      "tag": "PRT",
+      "name": "Portugal",
+      "areaKm2": 91390,
+      "population": 10269417,
+      "provinces": 2
+    },
+    {
+      "tag": "MDA",
+      "name": "Moldova",
+      "areaKm2": 33207,
+      "population": 2657637,
+      "provinces": 2
+    },
+    {
+      "tag": "JOR",
+      "name": "Jordan",
+      "areaKm2": 88863,
+      "population": 10101694,
+      "provinces": 2
+    },
+    {
+      "tag": "LSO",
+      "name": "Lesotho",
+      "areaKm2": 30106,
+      "population": 2125268,
+      "provinces": 2
+    },
+    {
+      "tag": "TGO",
+      "name": "Togo",
+      "areaKm2": 56863,
+      "population": 8082366,
+      "provinces": 2
+    },
+    {
+      "tag": "GNB",
+      "name": "Guinea-Bissau",
+      "areaKm2": 32829,
+      "population": 1920922,
+      "provinces": 2
+    },
+    {
+      "tag": "GIB",
+      "name": "Gibraltar",
+      "areaKm2": 4,
+      "population": 33701,
+      "provinces": 2
+    },
+    {
+      "tag": "BLZ",
+      "name": "Belize",
+      "areaKm2": 22299,
+      "population": 390353,
+      "provinces": 2
+    },
+    {
+      "tag": "PAN",
+      "name": "Panama",
+      "areaKm2": 74530,
+      "population": 4246439,
+      "provinces": 2
+    },
+    {
+      "tag": "GNQ",
+      "name": "Eq. Guinea",
+      "areaKm2": 26672,
+      "population": 1355986,
+      "provinces": 2
+    },
+    {
+      "tag": "GMB",
+      "name": "Gambia",
+      "areaKm2": 10501,
+      "population": 2347706,
+      "provinces": 2
+    },
+    {
+      "tag": "HKG",
+      "name": "Hong Kong",
+      "areaKm2": 1036,
+      "population": 7507400,
+      "provinces": 2
+    },
+    {
+      "tag": "CYN",
+      "name": "N. Cyprus",
+      "areaKm2": 3319,
+      "population": 326000,
+      "provinces": 2
+    },
+    {
+      "tag": "CNM",
+      "name": "Cyprus U.N. Buffer Zone",
+      "areaKm2": 341,
+      "population": 10000,
+      "provinces": 2
+    },
+    {
+      "tag": "KAS",
+      "name": "Siachen Glacier",
+      "areaKm2": 2088,
+      "population": 6000,
+      "provinces": 2
+    },
+    {
+      "tag": "KAB",
+      "name": "Baikonur",
+      "areaKm2": 6501,
+      "population": 36175,
+      "provinces": 2
+    },
+    {
+      "tag": "WSB",
+      "name": "Akrotiri",
+      "areaKm2": 99,
+      "population": 7850,
+      "provinces": 2
+    },
+    {
+      "tag": "SPI",
+      "name": "Southern Patagonian Ice Field",
+      "areaKm2": 1409,
+      "population": 0,
+      "provinces": 2
+    },
+    {
+      "tag": "BRT",
+      "name": "Bir Tawil",
+      "areaKm2": 2019,
+      "population": 0,
+      "provinces": 2
+    },
+    {
+      "tag": "FJI",
+      "name": "Fiji",
+      "areaKm2": 18930,
+      "population": 889953,
+      "provinces": 2
+    },
+    {
+      "tag": "NCL",
+      "name": "New Caledonia",
+      "areaKm2": 18841,
+      "population": 287800,
+      "provinces": 2
+    },
+    {
+      "tag": "CUW",
+      "name": "Curaçao",
+      "areaKm2": 463,
+      "population": 157538,
+      "provinces": 2
+    },
+    {
+      "tag": "ABW",
+      "name": "Aruba",
+      "areaKm2": 170,
+      "population": 106314,
+      "provinces": 2
+    },
+    {
+      "tag": "BHS",
+      "name": "Bahamas",
+      "areaKm2": 12604,
+      "population": 389482,
+      "provinces": 2
+    },
+    {
+      "tag": "TCA",
+      "name": "Turks and Caicos Is.",
+      "areaKm2": 445,
+      "population": 38191,
+      "provinces": 2
+    },
+    {
+      "tag": "SPM",
+      "name": "St. Pierre and Miquelon",
+      "areaKm2": 243,
+      "population": 5997,
+      "provinces": 2
+    },
+    {
+      "tag": "ISL",
+      "name": "Iceland",
+      "areaKm2": 102390,
+      "population": 361313,
+      "provinces": 2
+    },
+    {
+      "tag": "PCN",
+      "name": "Pitcairn Is.",
+      "areaKm2": 43,
+      "population": 54,
+      "provinces": 2
+    },
+    {
+      "tag": "PYF",
+      "name": "Fr. Polynesia",
+      "areaKm2": 3337,
+      "population": 279287,
+      "provinces": 2
+    },
+    {
+      "tag": "ATF",
+      "name": "Fr. S. Antarctic Lands",
+      "areaKm2": 7280,
+      "population": 140,
+      "provinces": 2
+    },
+    {
+      "tag": "SYC",
+      "name": "Seychelles",
+      "areaKm2": 436,
+      "population": 97625,
+      "provinces": 2
+    },
+    {
+      "tag": "KIR",
+      "name": "Kiribati",
+      "areaKm2": 950,
+      "population": 117606,
+      "provinces": 2
+    },
+    {
+      "tag": "MHL",
+      "name": "Marshall Is.",
+      "areaKm2": 165,
+      "population": 58791,
+      "provinces": 2
+    },
+    {
+      "tag": "TTO",
+      "name": "Trinidad and Tobago",
+      "areaKm2": 5123,
+      "population": 1394973,
+      "provinces": 2
+    },
+    {
+      "tag": "GRD",
+      "name": "Grenada",
+      "areaKm2": 347,
+      "population": 112003,
+      "provinces": 2
+    },
+    {
+      "tag": "VCT",
+      "name": "St. Vin. and Gren.",
+      "areaKm2": 368,
+      "population": 110589,
+      "provinces": 2
+    },
+    {
+      "tag": "BRB",
+      "name": "Barbados",
+      "areaKm2": 444,
+      "population": 287025,
+      "provinces": 2
+    },
+    {
+      "tag": "LCA",
+      "name": "Saint Lucia",
+      "areaKm2": 605,
+      "population": 182790,
+      "provinces": 2
+    },
+    {
+      "tag": "DMA",
+      "name": "Dominica",
+      "areaKm2": 730,
+      "population": 71808,
+      "provinces": 2
+    },
+    {
+      "tag": "UMI",
+      "name": "U.S. Minor Outlying Is.",
+      "areaKm2": 28,
+      "population": 300,
+      "provinces": 2
+    },
+    {
+      "tag": "MSR",
+      "name": "Montserrat",
+      "areaKm2": 100,
+      "population": 4649,
+      "provinces": 2
+    },
+    {
+      "tag": "ATG",
+      "name": "Antigua and Barb.",
+      "areaKm2": 452,
+      "population": 97118,
+      "provinces": 2
+    },
+    {
+      "tag": "KNA",
+      "name": "St. Kitts and Nevis",
+      "areaKm2": 264,
+      "population": 52834,
+      "provinces": 2
+    },
+    {
+      "tag": "VIR",
+      "name": "U.S. Virgin Is.",
+      "areaKm2": 355,
+      "population": 106631,
+      "provinces": 2
+    },
+    {
+      "tag": "BLM",
+      "name": "St-Barthélemy",
+      "areaKm2": 24,
+      "population": 9961,
+      "provinces": 2
+    },
+    {
+      "tag": "PRI",
+      "name": "Puerto Rico",
+      "areaKm2": 9006,
+      "population": 3193694,
+      "provinces": 2
+    },
+    {
+      "tag": "AIA",
+      "name": "Anguilla",
+      "areaKm2": 87,
+      "population": 14731,
+      "provinces": 2
+    },
+    {
+      "tag": "VGB",
+      "name": "British Virgin Is.",
+      "areaKm2": 145,
+      "population": 30030,
+      "provinces": 2
+    },
+    {
+      "tag": "JAM",
+      "name": "Jamaica",
+      "areaKm2": 11033,
+      "population": 2948279,
+      "provinces": 2
+    },
+    {
+      "tag": "CYM",
+      "name": "Cayman Is.",
+      "areaKm2": 309,
+      "population": 64948,
+      "provinces": 2
+    },
+    {
+      "tag": "BMU",
+      "name": "Bermuda",
+      "areaKm2": 62,
+      "population": 63918,
+      "provinces": 2
+    },
+    {
+      "tag": "HMD",
+      "name": "Heard I. and McDonald Is.",
+      "areaKm2": 395,
+      "population": 0,
+      "provinces": 2
+    },
+    {
+      "tag": "SHN",
+      "name": "Saint Helena",
+      "areaKm2": 367,
+      "population": 4534,
+      "provinces": 2
+    },
+    {
+      "tag": "MUS",
+      "name": "Mauritius",
+      "areaKm2": 2014,
+      "population": 1265711,
+      "provinces": 2
+    },
+    {
+      "tag": "COM",
+      "name": "Comoros",
+      "areaKm2": 1672,
+      "population": 850886,
+      "provinces": 2
+    },
+    {
+      "tag": "STP",
+      "name": "São Tomé and Principe",
+      "areaKm2": 1037,
+      "population": 215056,
+      "provinces": 2
+    },
+    {
+      "tag": "CPV",
+      "name": "Cabo Verde",
+      "areaKm2": 3927,
+      "population": 549935,
+      "provinces": 2
+    },
+    {
+      "tag": "MLT",
+      "name": "Malta",
+      "areaKm2": 326,
+      "population": 502653,
+      "provinces": 2
+    },
+    {
+      "tag": "JEY",
+      "name": "Jersey",
+      "areaKm2": 119,
+      "population": 107800,
+      "provinces": 2
+    },
+    {
+      "tag": "GGY",
+      "name": "Guernsey",
+      "areaKm2": 74,
+      "population": 62792,
+      "provinces": 2
+    },
+    {
+      "tag": "IMN",
+      "name": "Isle of Man",
+      "areaKm2": 575,
+      "population": 84584,
+      "provinces": 2
+    },
+    {
+      "tag": "ALD",
+      "name": "Åland",
+      "areaKm2": 942,
+      "population": 29884,
+      "provinces": 2
+    },
+    {
+      "tag": "FRO",
+      "name": "Faeroe Is.",
+      "areaKm2": 1329,
+      "population": 48678,
+      "provinces": 2
+    },
+    {
+      "tag": "IOA",
+      "name": "Indian Ocean Ter.",
+      "areaKm2": 112,
+      "population": 2387,
+      "provinces": 2
+    },
+    {
+      "tag": "IOT",
+      "name": "Br. Indian Ocean Ter.",
+      "areaKm2": 49,
+      "population": 3000,
+      "provinces": 2
+    },
+    {
+      "tag": "SGP",
+      "name": "Singapore",
+      "areaKm2": 511,
+      "population": 5703569,
+      "provinces": 2
+    },
+    {
+      "tag": "NFK",
+      "name": "Norfolk Island",
+      "areaKm2": 41,
+      "population": 2169,
+      "provinces": 2
+    },
+    {
+      "tag": "COK",
+      "name": "Cook Is.",
+      "areaKm2": 191,
+      "population": 17459,
+      "provinces": 2
+    },
+    {
+      "tag": "TON",
+      "name": "Tonga",
+      "areaKm2": 603,
+      "population": 104494,
+      "provinces": 2
+    },
+    {
+      "tag": "WLF",
+      "name": "Wallis and Futuna Is.",
+      "areaKm2": 139,
+      "population": 11558,
+      "provinces": 2
+    },
+    {
+      "tag": "WSM",
+      "name": "Samoa",
+      "areaKm2": 2780,
+      "population": 197097,
+      "provinces": 2
+    },
+    {
+      "tag": "SLB",
+      "name": "Solomon Is.",
+      "areaKm2": 27199,
+      "population": 669823,
+      "provinces": 2
+    },
+    {
+      "tag": "TUV",
+      "name": "Tuvalu",
+      "areaKm2": 23,
+      "population": 11646,
+      "provinces": 2
+    },
+    {
+      "tag": "MDV",
+      "name": "Maldives",
+      "areaKm2": 109,
+      "population": 530953,
+      "provinces": 2
+    },
+    {
+      "tag": "NRU",
+      "name": "Nauru",
+      "areaKm2": 29,
+      "population": 12581,
+      "provinces": 2
+    },
+    {
+      "tag": "FSM",
+      "name": "Micronesia",
+      "areaKm2": 634,
+      "population": 113815,
+      "provinces": 2
+    },
+    {
+      "tag": "SGS",
+      "name": "S. Geo. and the Is.",
+      "areaKm2": 3921,
+      "population": 30,
+      "provinces": 2
+    },
+    {
+      "tag": "FLK",
+      "name": "Falkland Is.",
+      "areaKm2": 11597,
+      "population": 3398,
+      "provinces": 2
+    },
+    {
+      "tag": "VUT",
+      "name": "Vanuatu",
+      "areaKm2": 12297,
+      "population": 299882,
+      "provinces": 2
+    },
+    {
+      "tag": "NIU",
+      "name": "Niue",
+      "areaKm2": 221,
+      "population": 1620,
+      "provinces": 2
+    },
+    {
+      "tag": "ASM",
+      "name": "American Samoa",
+      "areaKm2": 180,
+      "population": 55312,
+      "provinces": 2
+    },
+    {
+      "tag": "PLW",
+      "name": "Palau",
+      "areaKm2": 492,
+      "population": 18008,
+      "provinces": 2
+    },
+    {
+      "tag": "GUM",
+      "name": "Guam",
+      "areaKm2": 564,
+      "population": 167294,
+      "provinces": 2
+    },
+    {
+      "tag": "MNP",
+      "name": "N. Mariana Is.",
+      "areaKm2": 579,
+      "population": 57216,
+      "provinces": 2
+    },
+    {
+      "tag": "BHR",
+      "name": "Bahrain",
+      "areaKm2": 688,
+      "population": 1641172,
+      "provinces": 2
+    },
+    {
+      "tag": "PGA",
+      "name": "Spratly Is.",
+      "areaKm2": 12,
+      "population": 100,
+      "provinces": 2
+    },
+    {
+      "tag": "CLP",
+      "name": "Clipperton I.",
+      "areaKm2": 5,
+      "population": 0,
+      "provinces": 2
+    },
+    {
+      "tag": "MAC",
+      "name": "Macao",
+      "areaKm2": 30,
+      "population": 640445,
+      "provinces": 2
+    },
+    {
+      "tag": "ATC",
+      "name": "Ashmore and Cartier Is.",
+      "areaKm2": 3,
+      "population": 0,
+      "provinces": 2
+    }
+  ]
+}
