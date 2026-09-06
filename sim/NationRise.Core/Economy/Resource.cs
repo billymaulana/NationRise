@@ -31,4 +31,10 @@ public static class ResourceInfo
     public static float FactorOf(Resource resource) => Factors[(int)resource];
 
     public static bool IsTradeable(Resource resource) => resource != Resource.Manpower;
+
+    /* The five goods a city can specialise in. Money comes from every province
+       regardless, and manpower is derived from population. */
+    public static bool IsCityGood(Resource resource) =>
+        resource is Resource.Food or Resource.Fuel or Resource.Materials
+                 or Resource.Technology or Resource.RareResources;
 }
