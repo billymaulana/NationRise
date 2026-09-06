@@ -22,6 +22,11 @@ public sealed class CityBuildings(WorldState world, Stockpile stockpile)
     private readonly Dictionary<int, ConstructionOrder> _queue = [];
     private readonly List<ConstructionOrder> _completed = [];
 
+    /* A shortage stops work being started, never work already under way: a
+       half-built power station does not fall down because the steel ran out
+       this morning, but nothing new is laid down until it comes back. */
+    public ShortageSystem? Shortage { get; set; }
+
     public IReadOnlyList<ConstructionOrder> RecentlyCompleted => _completed;
 
     public void ClearCompleted() => _completed.Clear();
@@ -78,6 +83,11 @@ public sealed class CityBuildings(WorldState world, Stockpile stockpile)
 
         int level = current + 1;
         ushort nation = world.Provinces.Controller[province];
+
+        if (Shortage is not null && Shortage.IsProductionHalted(nation, out Resource missing))
+        {
+            throw new ConstructionRejected($"Not enough {missing} to start new work.");
+        }
 
         foreach (ResourceCost cost in BuildingCost.For(type, level))
         {

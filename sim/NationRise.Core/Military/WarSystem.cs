@@ -1,5 +1,6 @@
 using NationRise.Core.Determinism;
 using NationRise.Core.Diplomacy;
+using NationRise.Core.Economy;
 using NationRise.Core.World;
 
 namespace NationRise.Core.Military;
@@ -28,6 +29,11 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
        once attached these decide as much of a battle as the unit ratings do. */
     public SupplySystem? Supply { get; set; }
     public StanceSystem? Stances { get; set; }
+
+    /* A nation that cannot buy fuel fights with whatever its engines have
+       left. It arrives as a modifier rather than as another branch inside the
+       damage code, which is the whole reason CombatModifiers exists. */
+    public ShortageSystem? Shortage { get; set; }
 
     public IReadOnlyList<BattleReport> LastReports => _reports;
     public IReadOnlyList<ConquestEvent> LastConquests => _conquest.RecentEvents;
@@ -127,6 +133,16 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
             mods = mods
                 .WithAttackerAttack(Supply.AttackMultiplierForStackIn(attacker.Nation, attacker.Province))
                 .WithDefenderAttack(Supply.DefenceMultiplierForStackIn(defender.Nation, defender.Province));
+        }
+
+        /* Both sides are weighed by their own composition: a shortage only
+           reaches the part of a stack that runs on an engine, so an infantry
+           garrison defending on empty tanks it does not have loses nothing. */
+        if (Shortage is not null)
+        {
+            mods = mods
+                .WithAttackerAttack(Shortage.AttackMultiplierFor(attacker))
+                .WithDefenderAttack(Shortage.AttackMultiplierFor(defender));
         }
 
         if (Stances is not null)

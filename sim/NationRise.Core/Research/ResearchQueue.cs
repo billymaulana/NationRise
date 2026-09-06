@@ -22,6 +22,7 @@ public sealed class ResearchQueue(WorldState world, Stockpile stockpile, CityBui
     private readonly Dictionary<int, List<ResearchOrder>> _active = [];
     private readonly List<(int Nation, string NodeId)> _finishedThisTick = [];
 
+
     public IReadOnlyList<(int Nation, string NodeId)> FinishedThisTick => _finishedThisTick;
 
     public bool HasCompleted(int nation, string nodeId) =>

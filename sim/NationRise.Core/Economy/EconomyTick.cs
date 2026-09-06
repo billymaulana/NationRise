@@ -58,6 +58,50 @@ public sealed class EconomyTick(WorldState world, Stockpile stockpile)
         return total;
     }
 
+    /*
+       Every nation's whole income in one sweep. DailyIncomeOf answers for a
+       single nation and walks the map to do it; asking it for all of them and
+       all their goods is a quadratic the world map is far too big for, and the
+       market needs exactly that figure every day.
+    */
+    public void DailyIncomeInto(long[] into)
+    {
+        ArgumentNullException.ThrowIfNull(into);
+        Array.Clear(into);
+
+        var provinces = world.Provinces;
+
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            ushort nation = provinces.Controller[i];
+            if (nation == ProvinceStore.NoOwner || nation >= stockpile.NationCount)
+            {
+                continue;
+            }
+
+            float population = provinces.Population[i];
+            float morale = provinces.Morale[i];
+
+            ProvinceStatus status = provinces.IsCity[i] ? _status[i] : ProvinceStatus.PlainProvince;
+            float ceiling = ProvinceStatusInfo.CeilingOf(status);
+
+            into[(nation * ResourceInfo.Count) + (int)Resource.Money] +=
+                (long)(Production.DailyOutput(population, morale, Resource.Money) * ceiling);
+
+            if (!provinces.IsCity[i])
+            {
+                continue;
+            }
+
+            Resource produced = _provinceResource[i];
+            if (ResourceInfo.IsCityGood(produced))
+            {
+                into[(nation * ResourceInfo.Count) + (int)produced] +=
+                    (long)(Production.DailyOutput(population, morale, produced) * ceiling);
+            }
+        }
+    }
+
     public void RunDay()
     {
         var provinces = world.Provinces;

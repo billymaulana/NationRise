@@ -67,6 +67,10 @@ public sealed class Mobilisation(
     private readonly Dictionary<int, MobilisationOrder> _queue = [];
     private readonly List<MobilisationOrder> _completed = [];
 
+    /* Same rule as construction: the factories stop taking orders, the units
+       already on the line still roll out. */
+    public ShortageSystem? Shortage { get; set; }
+
     public IReadOnlyList<MobilisationOrder> RecentlyCompleted => _completed;
 
     public bool IsMobilising(int province) => _queue.ContainsKey(province);
@@ -97,6 +101,12 @@ public sealed class Mobilisation(
         if (world.Provinces.Owner[province] != nation)
         {
             reason = "Occupied cities cannot mobilise.";
+            return false;
+        }
+
+        if (Shortage is not null && Shortage.IsProductionHalted(nation, out Resource missing))
+        {
+            reason = $"Not enough {missing} to start new work.";
             return false;
         }
 

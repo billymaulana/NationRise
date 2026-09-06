@@ -104,22 +104,40 @@ public sealed class WorldMarket(Stockpile stockpile)
     public long AbsorbableOf(Resource resource) =>
         Math.Max(0, DemandOf(resource) - _soldToday[(int)resource]);
 
+    /*
+       What each nation actually burns in a day. Attached, it is what ties the
+       buying quota to use instead of to wealth: without it the share quota
+       alone lets four rich nations empty the board before anyone else is
+       asked, which is exactly what a thin market looks like when it is
+       working badly rather than working as designed.
+    */
+    public UpkeepSystem? Upkeep { get; set; }
+
     /* No nation may corner a good: a quarter of the day's supply is the most
        one buyer can take, so a rich neighbour cannot leave everyone else with
        an empty board. */
-    public long QuotaLeftFor(int nation, Resource resource) => Math.Max(
-        0,
-        SupplyOf(resource) * DailyBuyQuotaPercent / 100 - _nationBoughtToday[Index(nation, resource)]);
+    public long QuotaLeftFor(int nation, Resource resource) => Upkeep is null
+        ? ShareQuotaLeftFor(nation, resource)
+        : QuotaLeftFor(nation, resource, Upkeep.BillOf(nation, resource));
 
     /* The share quota alone still lets a nation stockpile years of supply in a
        quiet week. Capping against actual consumption keeps buying tied to use
        rather than to how much money happens to be lying around. */
     public long QuotaLeftFor(int nation, Resource resource, long dailyConsumption)
     {
-        long byShare = QuotaLeftFor(nation, resource);
-        long byUse = Math.Max(dailyConsumption * 3, RestOfWorldDailyVolume / 40);
-        return Math.Min(byShare, byUse);
+        /* What the nation already took today comes off both limits. Charging
+           it only against the share left the consumption cap sizing single
+           orders and bounding nothing: a nation could place the same modest
+           order again and again until the share ran out. */
+        long byUse = Math.Max(dailyConsumption * 3, RestOfWorldDailyVolume / 40)
+            - _nationBoughtToday[Index(nation, resource)];
+
+        return Math.Max(0, Math.Min(ShareQuotaLeftFor(nation, resource), byUse));
     }
+
+    private long ShareQuotaLeftFor(int nation, Resource resource) => Math.Max(
+        0,
+        SupplyOf(resource) * DailyBuyQuotaPercent / 100 - _nationBoughtToday[Index(nation, resource)]);
 
     /* An order walks the book: it fills at the average of the price before and
        after its own impact. Filling at the pre-trade price would let a nation

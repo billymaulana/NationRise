@@ -63,6 +63,12 @@ public sealed class UpkeepSystem(WorldState world, Stockpile stockpile, CityBuil
     private readonly long[] _shortfall = new long[world.Nations.Count * ResourceInfo.Count];
     private readonly long[] _bill = new long[world.Nations.Count * ResourceInfo.Count];
 
+    /* The ramp that turns an unpaid bill into pressure, advanced from here
+       because this is the only place that knows what went unpaid and it runs
+       exactly once a day. Advancing it from two callers would double every
+       shortage; advancing it from none is the state this replaced. */
+    public ShortageSystem? Shortage { get; set; }
+
     public long ShortfallOf(int nation, Resource resource) =>
         _shortfall[nation * ResourceInfo.Count + (int)resource];
 
@@ -150,5 +156,7 @@ public sealed class UpkeepSystem(WorldState world, Stockpile stockpile, CityBuil
                 _shortfall[nation * ResourceInfo.Count + (int)resource] = bill - held;
             }
         }
+
+        Shortage?.RunDay(stockpile, this);
     }
 }

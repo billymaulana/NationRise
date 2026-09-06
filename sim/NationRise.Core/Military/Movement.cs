@@ -1,4 +1,5 @@
 using NationRise.Core.Data;
+using NationRise.Core.Economy;
 using NationRise.Core.World;
 
 namespace NationRise.Core.Military;
@@ -33,6 +34,10 @@ public sealed class MovementOrder
 public sealed class MovementSystem(WorldState world, ProvinceGraph? land = null)
 {
     private readonly Dictionary<int, MovementOrder> _orders = [];
+
+    /* Optional so movement stays testable on its own; attached, it is what
+       makes a fuel shortage strand an armoured column halfway to the front. */
+    public ShortageSystem? Shortage { get; set; }
 
     public int PendingOrders => _orders.Count;
 
@@ -111,7 +116,7 @@ public sealed class MovementSystem(WorldState world, ProvinceGraph? land = null)
     private float StepHours(Army army, int destination)
     {
         Terrain terrain = world.Provinces[destination].Terrain;
-        float speed = MathF.Max(army.Speed, 0.1f);
+        float speed = MathF.Max(army.Speed * (Shortage?.SpeedMultiplierFor(army) ?? 1f), 0.1f);
         bool bySea = terrain.IsWater() || CrossedWater(army.Province, destination);
         return MovementCost.HoursFor(terrain, bySea) / speed;
     }
