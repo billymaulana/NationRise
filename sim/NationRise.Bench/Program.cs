@@ -47,6 +47,12 @@ public static class Program
         private CityBuildings _buildings = null!;
         private ResearchQueue _research = null!;
         private Mobilisation _mobilisation = null!;
+        private ArmyPolicy _policy = null!;
+        private int _wanted;
+        private int _started;
+        private string _lastRefusal = string.Empty;
+        private readonly Dictionary<string, int> _refusals = [];
+        private readonly Dictionary<string, int> _buildRefusals = [];
         private Relations _relations = null!;
         private MoraleSystem _morale = null!;
         private WorldMarket _market = null!;
@@ -99,11 +105,12 @@ public static class Program
             _research = new ResearchQueue(_world, _stock, _buildings);
             _mobilisation = new Mobilisation(_world, _stock, _buildings, _research);
             _relations = new Relations(_world.Nations.Count);
+            _policy = new ArmyPolicy(_world, _relations);
             _morale = new MoraleSystem(_world, _relations, _buildings);
             _market = new WorldMarket(_stock);
             _upkeep = new UpkeepSystem(_world, _stock, _buildings);
             _shortage = new ShortageSystem(_world.Nations.Count);
-            _trade = new TradePolicy(_stock, _market, _upkeep);
+            _trade = new TradePolicy(_world, _stock, _market, _upkeep);
             _income = new long[_world.Nations.Count * ResourceInfo.Count];
 
             _upkeep.Shortage = _shortage;
@@ -157,6 +164,7 @@ public static class Program
                 if (_world.Clock.Tick % 24 == 0)
                 {
                     Develop();
+                    RaiseTroops();
                 }
 
                 _world.Clock.Advance();
@@ -174,6 +182,66 @@ public static class Program
             }
         }
 
+        /* Mirrors the standing army the game raises. Without it this harness
+           measures a world whose forces never grow, which is the state that hid
+           the eight-to-one gap between what the world produced and what it
+           owed. */
+        private void RaiseTroops()
+        {
+            var held = new int[_world.Nations.Count];
+            foreach (Army army in _armies.Values)
+            {
+                if (!army.IsDestroyed && army.Nation < held.Length)
+                {
+                    held[army.Nation] += army.Count;
+                }
+            }
+
+            for (int province = 0; province < _world.Provinces.Count; province++)
+            {
+                ushort owner = _world.Provinces.Controller[province];
+                if (_mobilisation.IsMobilising(province) && owner < held.Length)
+                {
+                    held[owner]++;
+                }
+            }
+
+            for (int province = 0; province < _world.Provinces.Count; province++)
+            {
+                if (!_world.Provinces.IsCity[province] || _mobilisation.IsMobilising(province))
+                {
+                    continue;
+                }
+
+                ushort nation = _world.Provinces.Controller[province];
+                if (nation >= held.Length || !_policy.WantsMore(nation, held[nation]))
+                {
+                    continue;
+                }
+
+                _wanted++;
+                string why = string.Empty;
+
+                for (int i = UnitRecipes.All.Count - 1; i >= 0; i--)
+                {
+                    if (_mobilisation.CanMobilise(province, UnitRecipes.All[i], out why))
+                    {
+                        _mobilisation.Begin(province, UnitRecipes.All[i]);
+                        held[nation]++;
+                        _started++;
+                        why = string.Empty;
+                        break;
+                    }
+                }
+
+                if (why.Length > 0)
+                {
+                    _lastRefusal = why;
+                    _refusals[why] = _refusals.GetValueOrDefault(why) + 1;
+                }
+            }
+        }
+
         private void Develop()
         {
             for (int province = 0; province < _world.Provinces.Count; province++)
@@ -185,7 +253,7 @@ public static class Program
 
                 foreach (BuildingType type in new[]
                 {
-                    BuildingType.ArmsIndustry, BuildingType.RecruitingOffice, BuildingType.ArmyBase,
+                    BuildingType.ArmyBase, BuildingType.ArmsIndustry, BuildingType.RecruitingOffice,
                 })
                 {
                     try
@@ -193,9 +261,10 @@ public static class Program
                         _buildings.Begin(province, type);
                         break;
                     }
-                    catch (ConstructionRejected)
+                    catch (ConstructionRejected rejected)
                     {
-                        /* Not affordable, no slot, or the country is short. */
+                        _buildRefusals[$"{type}: {rejected.Message}"] =
+                            _buildRefusals.GetValueOrDefault($"{type}: {rejected.Message}") + 1;
                     }
                 }
             }
@@ -400,6 +469,50 @@ public static class Program
             Console.WriteLine();
             Console.WriteLine($"nations starving on the last day: {starvedDays}/{_world.Nations.Count}");
             Console.WriteLine($"live stacks: {_armies.Values.Count(a => !a.IsDestroyed)}");
+            Console.WriteLine($"mobilisation: wanted {_wanted}, started {_started}, last refusal: {_lastRefusal}");
+
+            foreach ((string reason, int count) in _buildRefusals.OrderByDescending(r => r.Value).Take(5))
+            {
+                Console.WriteLine($"  build refused {count,8}  {reason}");
+            }
+
+            foreach ((string reason, int count) in _refusals.OrderByDescending(r => r.Value).Take(6))
+            {
+                Console.WriteLine($"  refused {count,8}  {reason}");
+            }
+
+            var byResource = new Dictionary<Resource, int>();
+            for (int i = 0; i < _world.Provinces.Count; i++)
+            {
+                if (!_world.Provinces.IsCity[i])
+                {
+                    continue;
+                }
+
+                Resource made = _economy.ResourceOf(i);
+                byResource[made] = byResource.GetValueOrDefault(made) + 1;
+            }
+
+            foreach ((Resource made, int cities) in byResource.OrderByDescending(r => r.Value))
+            {
+                Console.WriteLine($"  cities producing {made,-14} {cities}");
+            }
+
+            int idn = _world.Nations.IndexOf("IDN");
+            Console.WriteLine($"IDN completed research: {_research.CompletedFor(idn).Count}");
+            Console.WriteLine($"IDN has motorized_1: {_research.HasCompleted(idn, "motorized_1")}");
+            Console.WriteLine($"IDN can start motorized_1: {_research.CanStart(idn, ResearchTree.ById("motorized_1"), out string blocked)} ({blocked})");
+
+            int bases = 0;
+            for (int i = 0; i < _world.Provinces.Count; i++)
+            {
+                if (_world.Provinces.Controller[i] == idn && _buildings.LevelOf(i, BuildingType.ArmyBase) > 0)
+                {
+                    bases++;
+                }
+            }
+
+            Console.WriteLine($"IDN cities with an army base: {bases}");
             Console.WriteLine($"world money total: {TotalOf(Resource.Money):N0}");
             Console.WriteLine($"world food total:  {TotalOf(Resource.Food):N0}");
         }

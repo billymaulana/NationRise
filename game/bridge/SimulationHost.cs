@@ -48,6 +48,7 @@ public sealed partial class SimulationHost : Node
     private StanceSystem? _stances;
     private UpkeepSystem? _upkeep;
     private ShortageSystem? _shortage;
+    private ArmyPolicy? _armyPolicy;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -104,6 +105,7 @@ public sealed partial class SimulationHost : Node
         /* Built and never connected would mean an army can go unfed for a month
            with nothing to show for it, which is the state this was in. */
         _shortage = new ShortageSystem(_world.Nations.Count);
+        _armyPolicy = new ArmyPolicy(_world, _relations);
         _morale.Shortage = _shortage;
 
         _victory = new VictoryTracker(
@@ -457,9 +459,15 @@ public sealed partial class SimulationHost : Node
                 continue;
             }
 
+            /* The army base comes first because it gates the entire land
+               roster, and the research that unlocks a unit needs one before it
+               can even be started. Built last, as it was, a city spent its
+               whole queue on industry and the nation never became able to
+               raise a single soldier: across a measured run of sixty days,
+               nowhere in the world did one unit get built. */
             foreach (BuildingType type in new[]
             {
-                BuildingType.ArmsIndustry, BuildingType.RecruitingOffice, BuildingType.ArmyBase,
+                BuildingType.ArmyBase, BuildingType.ArmsIndustry, BuildingType.RecruitingOffice,
             })
             {
                 try
@@ -491,13 +499,39 @@ public sealed partial class SimulationHost : Node
         RaiseTroops();
     }
 
-    /* Nations at war replace losses; nations at peace do not, which keeps the
-       world from filling up with armies nobody intends to use. */
+    /*
+       Every nation that holds ground keeps a standing army, sized by
+       ArmyPolicy. The rule this replaced raised troops only for nations that
+       already had an enemy, so most of the world fielded nothing and the daily
+       upkeep the world owed came to an eighth of what it produced. An economy
+       with no army to pay for has no scarcity in it.
+    */
     private void RaiseTroops()
     {
-        if (_world is null || _mobilisation is null || _relations is null)
+        if (_world is null || _mobilisation is null || _relations is null || _armyPolicy is null)
         {
             return;
+        }
+
+        var held = new int[_world.Nations.Count];
+        foreach (Army army in _armies.Values)
+        {
+            if (!army.IsDestroyed && army.Nation < held.Length)
+            {
+                held[army.Nation] += army.Count;
+            }
+        }
+
+        /* Counting what is already on the slipway as well as what is fielded,
+           or a nation orders its whole army again every time the queue turns
+           over. */
+        for (int province = 0; province < _world.Provinces.Count; province++)
+        {
+            ushort owner = _world.Provinces.Controller[province];
+            if (_mobilisation.IsMobilising(province) && owner < held.Length)
+            {
+                held[owner]++;
+            }
         }
 
         for (int province = 0; province < _world.Provinces.Count; province++)
@@ -508,20 +542,34 @@ public sealed partial class SimulationHost : Node
             }
 
             ushort nation = _world.Provinces.Controller[province];
-            if (nation == ProvinceStore.NoOwner || !_relations.EnemiesOf(nation).Any())
+            if (nation == ProvinceStore.NoOwner || !_armyPolicy.WantsMore(nation, held[nation]))
             {
                 continue;
             }
 
-            foreach (UnitRecipe recipe in UnitRecipes.All)
+            if (BeginBestAffordable(province))
             {
-                if (_mobilisation.CanMobilise(province, recipe, out _))
-                {
-                    _mobilisation.Begin(province, recipe);
-                    break;
-                }
+                held[nation]++;
             }
         }
+    }
+
+    /* Recipes are tried from the heaviest down, so a nation that can afford
+       armour builds armour. Taking the first that fits always built the
+       cheapest thing on the list however rich the builder was. */
+    private bool BeginBestAffordable(int province)
+    {
+        for (int i = UnitRecipes.All.Count - 1; i >= 0; i--)
+        {
+            UnitRecipe recipe = UnitRecipes.All[i];
+            if (_mobilisation!.CanMobilise(province, recipe, out _))
+            {
+                _mobilisation.Begin(province, recipe);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public MobilisationLevel MobilisationOf(int nation) =>

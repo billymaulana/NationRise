@@ -10,7 +10,11 @@ namespace NationRise.Core.Economy;
    answer to a shortage instead of a screen the player visits after the damage
    is done.
 */
-public sealed class TradePolicy(Stockpile stockpile, WorldMarket market, UpkeepSystem upkeep)
+public sealed class TradePolicy(
+    NationRise.Core.World.WorldState world,
+    Stockpile stockpile,
+    WorldMarket market,
+    UpkeepSystem upkeep)
 {
     /* Seven days of cover, from the research. Short enough that a nation is
        still exposed to a blockade, long enough that one bad day does not
@@ -42,10 +46,48 @@ public sealed class TradePolicy(Stockpile stockpile, WorldMarket market, UpkeepS
     public long DesiredNetOf(int nation, Resource resource, long dailyProduction)
     {
         long consumption = upkeep.BillOf(nation, resource);
-        long target = Math.Max(consumption, dailyProduction) * BufferDays;
+        long target = Math.Max(
+            Math.Max(consumption, dailyProduction) * BufferDays,
+            CapitalFloorOf(nation, resource));
+
         long held = stockpile.Get(nation, resource);
 
         return dailyProduction - consumption - ((target - held) / BufferDays);
+    }
+
+    /*
+       Building materials a nation does not make itself.
+
+       Sized against production and upkeep alone, a country that mines no
+       materials wants none: its target is nothing, so it never bids, and it
+       never puts up an army base. Measured over sixty days that left the whole
+       world unable to build, while two and a half million tonnes of the stuff
+       sat in the hands of the few nations that happened to produce it.
+
+       The floor is roughly what one barracks costs, per city, so a nation is
+       always trying to hold enough to break ground somewhere.
+    */
+    public const int CapitalPerCity = 900;
+
+    private long CapitalFloorOf(int nation, Resource resource)
+    {
+        if (resource is not (Resource.Materials or Resource.Technology or Resource.RareResources))
+        {
+            return 0;
+        }
+
+        int cities = 0;
+        var provinces = world.Provinces;
+
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            if (provinces.Controller[i] == nation && provinces.IsCity[i])
+            {
+                cities++;
+            }
+        }
+
+        return (long)cities * CapitalPerCity;
     }
 
     /*
