@@ -396,4 +396,57 @@ public class SupplyTests
         supply.Tick();
         Assert.Equal(SupplySystem.RecomputeInterval, supply.LastComputedTick);
     }
+
+    /* A nation with no city can never mobilise, never build, and holds nothing
+       but permanently starved ground. Twenty-seven nations began that way
+       before the pipeline learned to promote a capital. */
+    [Fact]
+    public void EveryNationHoldingGroundHasSomewhereToSupplyFrom()
+    {
+        var data = WorldFixture.Load();
+        var state = data.ToWorldState(1);
+
+        var provinces = new Dictionary<ushort, int>();
+        var cities = new Dictionary<ushort, int>();
+
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            ushort nation = state.Provinces.Controller[i];
+            if (nation == ProvinceStore.NoOwner)
+            {
+                continue;
+            }
+
+            provinces[nation] = provinces.GetValueOrDefault(nation) + 1;
+            if (state.Provinces.IsCity[i])
+            {
+                cities[nation] = cities.GetValueOrDefault(nation) + 1;
+            }
+        }
+
+        var starved = provinces.Keys.Where(n => cities.GetValueOrDefault(n) == 0).ToArray();
+        Assert.Empty(starved);
+    }
+
+    [Fact]
+    public void FarFewerProvincesStartCutOff()
+    {
+        var data = WorldFixture.Load();
+        var state = data.ToWorldState(1);
+        var supply = new SupplySystem(state, data.Land, data.Sea);
+        supply.RecomputeAll();
+
+        int cutOff = 0;
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            if (supply.StatusOf(i) == SupplyStatus.CutOff)
+            {
+                cutOff++;
+            }
+        }
+
+        /* Genuine exclaves remain, but a map where four per cent of the world
+           starts starving is a data fault, not a design. */
+        Assert.True(cutOff < state.Provinces.Count / 40, $"{cutOff} provinces start cut off.");
+    }
 }

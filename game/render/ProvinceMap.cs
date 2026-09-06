@@ -93,6 +93,7 @@ public sealed partial class ProvinceMap : Node3D
         ProvinceCount = provinces;
         _centres = BuildCentres(features, provinces);
         CallDeferred(nameof(FocusCameraOnPlayer));
+        CallDeferred(nameof(PublishProvinceData), features.ToString());
 
         if (vertices.Count == 0)
         {
@@ -128,6 +129,37 @@ public sealed partial class ProvinceMap : Node3D
 
     /* A plane behind everything, so land reads as land sitting in water rather
        than shapes floating on a background. */
+    /* The map already parsed every name and centroid while building geometry;
+       handing them on saves the simulation side from parsing the file again. */
+    private void PublishProvinceData(string featuresJson)
+    {
+        var host = GetNodeOrNull<Bridge.SimulationHost>("/root/Main/SimulationHost");
+        var picker = GetNodeOrNull<ProvincePicker>("/root/Main/ProvincePicker");
+
+        picker?.SetCentres(_centres);
+
+        if (host is null)
+        {
+            return;
+        }
+
+        var names = new string[ProvinceCount];
+        Array.Fill(names, string.Empty);
+
+        foreach (JsonElement feature in JsonDocument.Parse(featuresJson).RootElement.EnumerateArray())
+        {
+            JsonElement properties = feature.GetProperty("properties");
+            int id = properties.GetProperty("id").GetInt32();
+            if (id < names.Length)
+            {
+                names[id] = properties.GetProperty("name").GetString() ?? string.Empty;
+            }
+        }
+
+        host.AttachProvinceNames(names);
+        GD.Print($"Province names attached: {names.Count(n => n.Length > 0)} named.");
+    }
+
     private void FocusCameraOnPlayer()
     {
         var host = GetNodeOrNull<Bridge.SimulationHost>("/root/Main/SimulationHost");

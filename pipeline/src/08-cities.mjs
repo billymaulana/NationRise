@@ -119,12 +119,35 @@ for (const [tag, provinces] of byNation) {
   }
 }
 
+/* A nation with no city cannot mobilise, cannot build, and every province it
+   holds is permanently cut off from supply. Where the populated-places data
+   has nothing inside the borders, the largest province becomes the capital so
+   the nation is at least playable. */
+let promoted = 0
+for (const [tag, provinces] of byNation) {
+  if (provinces.some((p) => p.feature.properties.is_city)) continue
+
+  const largest = [...provinces].sort(
+    (a, b) => (b.feature.properties.area_km2 ?? 0) - (a.feature.properties.area_km2 ?? 0))[0]
+  if (!largest) continue
+
+  largest.feature.properties.terrain_natural = largest.feature.properties.terrain
+  largest.feature.properties.terrain = TERRAIN_URBAN
+  largest.feature.properties.is_city = true
+  largest.feature.properties.city_name = largest.feature.properties.name || tag
+  largest.feature.properties.city_population = provinces.length >= 5 ? 4 : 3
+  largest.feature.properties.is_capital = true
+  promoted++
+}
+
 for (const f of features) {
   if (!f.properties.is_city) {
     f.properties.is_city = false
     f.properties.city_population = 0
   }
 }
+
+console.log(`Negara tanpa kota diberi ibu kota: ${promoted}`)
 
 await writeFile(`${OUT}/provinces.json`, JSON.stringify({ type: 'FeatureCollection', features }))
 

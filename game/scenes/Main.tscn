@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://bridge/SimulationHost.cs" id="1"]
 [ext_resource type="Script" path="res://render/ProvinceMap.cs" id="2"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://render/MapCamera.cs" id="6"]
 [ext_resource type="Script" path="res://render/CityLabels.cs" id="7"]
 [ext_resource type="Script" path="res://ui/DecisionPanel.cs" id="8"]
+[ext_resource type="Script" path="res://render/ProvincePicker.cs" id="9"]
+[ext_resource type="Script" path="res://ui/ProvincePanel.cs" id="10"]
 
 [node name="Main" type="Node3D"]
 
@@ -23,6 +25,9 @@ script = ExtResource("5")
 
 [node name="CityLabels" type="Node3D" parent="."]
 script = ExtResource("7")
+
+[node name="ProvincePicker" type="Node3D" parent="."]
+script = ExtResource("9")
 
 [node name="Camera" type="Camera3D" parent="."]
 script = ExtResource("6")
@@ -40,3 +45,6 @@ script = ExtResource("4")
 
 [node name="DecisionPanel" type="PanelContainer" parent="Hud"]
 script = ExtResource("8")
+
+[node name="ProvincePanel" type="PanelContainer" parent="Hud"]
+script = ExtResource("10")

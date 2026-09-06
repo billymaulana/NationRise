@@ -41,6 +41,13 @@ public sealed partial class Screenshot : Node
                 : $"Load MISMATCH: expected {_pointsAtSave}, got {after}.");
         }
 
+        if (_frame == FrameToCapture - 60)
+        {
+            var panel = GetNodeOrNull<Ui.ProvincePanel>("/root/Main/Hud/ProvincePanel");
+            GD.Print(panel is null ? "ProvincePanel not found." : "ProvincePanel found, showing 57.");
+            panel?.Show(57);
+        }
+
         if (_frame != FrameToCapture)
         {
             return;

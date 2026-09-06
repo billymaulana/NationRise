@@ -6,6 +6,7 @@ using GameResource = NationRise.Core.Economy.Resource;
 using NationRise.Core.Ai;
 using NationRise.Core.Buildings;
 using NationRise.Core.Research;
+using NationRise.Core.Victory;
 using NationRise.Core.Diplomacy;
 using NationRise.Core.Military;
 using System.Linq;
@@ -40,6 +41,8 @@ public sealed partial class SimulationHost : Node
     private ManpowerPool? _manpower;
     private MoraleSystem? _morale;
     private WorldMarket? _market;
+    private VictoryTracker? _victory;
+    private ProvinceQuery? _query;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -87,6 +90,8 @@ public sealed partial class SimulationHost : Node
            only appeared once a day actually elapsed. */
         _morale = new MoraleSystem(_world, _relations, _buildings);
         _market = new WorldMarket(_stockpile);
+        _victory = new VictoryTracker(
+            _world, _world.Nations.IndexOf("IDN"), CampaignPreset.Of(CampaignLength.Standard));
         _momentum = new Momentum();
         _brain = new NationBrain(
             _world, _relations, _momentum,
@@ -503,6 +508,26 @@ public sealed partial class SimulationHost : Node
 
     public long PriceOf(GameResource resource) => _market?.PriceOf(resource) ?? 0;
 
+    public int VictoryThreshold => _victory?.Threshold ?? 0;
+
+    /* Names live in the renderer's geometry file, never in the simulation
+       binary, so the bridge is where the two meet. */
+    public void AttachProvinceNames(IReadOnlyList<string> names)
+    {
+        if (_world is not null && _data is not null)
+        {
+            _query = new ProvinceQuery(_world, _data, names);
+        }
+    }
+
+    public ProvinceSummary Describe(int province) =>
+        _query?.Summarise(province)
+        ?? throw new InvalidOperationException("Province names not attached yet.");
+
+    public string NameOfProvince(int province) => _query?.NameOf(province) ?? string.Empty;
+
+    public int VictoryProgressOf(int nation) => _victory?.ProgressPercentOf(nation) ?? 0;
+
     public float AverageMoraleOf(int nation)
     {
         if (_world is null)
@@ -662,6 +687,7 @@ public sealed partial class SimulationHost : Node
             _war?.Tick(_armies);
             _buildings?.Tick();
             _research?.Tick();
+            _victory?.Tick();
 
             if (_mobilisation is not null)
             {
