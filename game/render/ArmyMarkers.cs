@@ -12,7 +12,7 @@ public sealed partial class ArmyMarkers : Node3D
 {
     [Export] public Color FriendlyColour { get; set; } = new(0.95f, 0.42f, 0.28f);
     [Export] public Color HostileColour { get; set; } = new(0.32f, 0.55f, 0.85f);
-    [Export] public float MarkerSize { get; set; } = 0.30f;
+    [Export] public float MarkerSize { get; set; } = 0.18f;
 
     private MultiMeshInstance3D? _instances;
     private Vector3[] _provinceCentres = [];
@@ -23,6 +23,8 @@ public sealed partial class ArmyMarkers : Node3D
     private ProvinceMap? _map;
     private ushort _playerNation;
     private bool _linked;
+    private readonly HashSet<ushort> _hostile = [];
+    private int _lastVisible = -1;
 
     public override void _Process(double delta)
     {
@@ -44,6 +46,20 @@ public sealed partial class ArmyMarkers : Node3D
         if (_host is not null)
         {
             Update(_host.Snapshot(), _playerNation);
+        }
+    }
+
+    private void RefreshHostiles(ushort playerNation)
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        _hostile.Clear();
+        foreach (int enemy in _host.Relations.EnemiesOf(playerNation))
+        {
+            _hostile.Add((ushort)enemy);
         }
     }
 
@@ -79,18 +95,38 @@ public sealed partial class ArmyMarkers : Node3D
             return;
         }
 
-        var armies = snapshot.Armies;
-        multi.InstanceCount = armies.Count;
+        RefreshHostiles(playerNation);
 
-        for (int i = 0; i < armies.Count; i++)
+        /* Drawing all four hundred stacks buries the map. Only the player's
+           forces and whoever they are fighting carry information the player
+           can act on; the rest is noise. Recomputed every frame because wars
+           start and end while the game runs. */
+        var visible = new List<ArmyView>();
+        foreach (ArmyView army in snapshot.Armies)
         {
-            ArmyView army = armies[i];
             if (army.Province >= _provinceCentres.Length)
             {
                 continue;
             }
 
-            Vector3 position = _provinceCentres[army.Province] + new Vector3(0f, 0.5f, 0f);
+            if (army.Nation == playerNation || _hostile.Contains(army.Nation))
+            {
+                visible.Add(army);
+            }
+        }
+
+        if (_lastVisible != visible.Count)
+        {
+            _lastVisible = visible.Count;
+            GD.Print($"Markers: {visible.Count} of {snapshot.Armies.Count} stacks, {_hostile.Count} hostile nations.");
+        }
+
+        multi.InstanceCount = visible.Count;
+
+        for (int i = 0; i < visible.Count; i++)
+        {
+            ArmyView army = visible[i];
+            Vector3 position = _provinceCentres[army.Province] + new Vector3(0f, 0.4f, 0f);
             multi.SetInstanceTransform(i, new Transform3D(Basis.Identity, position));
             multi.SetInstanceColor(i, army.Nation == playerNation ? FriendlyColour : HostileColour);
         }

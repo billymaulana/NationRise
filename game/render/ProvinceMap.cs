@@ -13,9 +13,7 @@ public sealed partial class ProvinceMap : Node3D
     private const string GeometryPath = "res://data/provinces.geojson";
     private const float DegreesToUnits = 0.1f;
 
-    [Export] public Color LandColour { get; set; } = new(0.24f, 0.31f, 0.24f);
-    [Export] public Color BorderColour { get; set; } = new(0.85f, 0.86f, 0.84f);
-    [Export] public Color HighlightColour { get; set; } = new(0.90f, 0.36f, 0.24f);
+    [Export] public float SeaDepth { get; set; } = -0.05f;
 
     private readonly List<int> _triangleProvince = [];
     private MeshInstance3D? _surface;
@@ -26,7 +24,7 @@ public sealed partial class ProvinceMap : Node3D
 
     public Vector3[] ProvinceCentres => _centres;
 
-    public void ApplyOwners(ushort[] owner, int highlightNation)
+    public void ApplyOwners(ushort[] owner, byte[] terrain, bool[] isCity, int highlightNation)
     {
         if (_surface?.Mesh is not ArrayMesh mesh || _triangleProvince.Count == 0)
         {
@@ -37,8 +35,17 @@ public sealed partial class ProvinceMap : Node3D
         for (int t = 0; t < _triangleProvince.Count; t++)
         {
             int province = _triangleProvince[t];
-            int nation = province < owner.Length ? owner[province] : 0xffff;
-            Color colour = nation == highlightNation ? HighlightColour : ColourFor(nation);
+            int nation = province < owner.Length ? owner[province] : -1;
+            if (nation == 0xffff)
+            {
+                nation = -1;
+            }
+
+            Color colour = MapPalette.Tinted(
+                (NationRise.Core.World.Terrain)(province < terrain.Length ? terrain[province] : 0),
+                nation,
+                nation == highlightNation,
+                province < isCity.Length && isCity[province]);
 
             colours[t * 3] = colour;
             colours[t * 3 + 1] = colour;
@@ -50,19 +57,6 @@ public sealed partial class ProvinceMap : Node3D
 
         mesh.ClearSurfaces();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-    }
-
-    /* Golden-ratio hue stepping keeps neighbouring nation indices visually far
-       apart without storing a palette for 247 nations. */
-    private static Color ColourFor(int nation)
-    {
-        if (nation == 0xffff)
-        {
-            return new Color(0.18f, 0.20f, 0.22f);
-        }
-
-        float hue = (nation * 0.618033988f) % 1f;
-        return Color.FromHsv(hue, 0.42f, 0.68f);
     }
 
     public override void _Ready()
@@ -124,7 +118,142 @@ public sealed partial class ProvinceMap : Node3D
         };
 
         AddChild(_surface);
+        BuildOcean();
+        BuildBorders(features);
+
         GD.Print($"Map built: {provinces} provinces, {vertices.Count / 3} triangles.");
+    }
+
+    /* A plane behind everything, so land reads as land sitting in water rather
+       than shapes floating on a background. */
+    private void BuildOcean()
+    {
+        var ocean = new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(400f, 200f) },
+            Position = new Vector3(0f, SeaDepth, 0f),
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = MapPalette.Ocean,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            },
+        };
+
+        AddChild(ocean);
+    }
+
+    /* Borders as line geometry rather than a shader: at strategy-map zoom the
+       player is reading political shape, and a crisp outline does more for
+       that than any amount of surface detail. */
+    private void BuildBorders(JsonElement features)
+    {
+        var province = new List<Vector3>();
+        var nation = new List<Vector3>();
+
+        /* An edge shared by two provinces of the same nation is internal; an
+           edge nobody else shares is a coast or a frontier. Hashing edges
+           separates the two without any geometry work. */
+        var edgeOwner = new Dictionary<(long, long), string>();
+        var frontier = new HashSet<(long, long)>();
+
+        foreach (JsonElement feature in features.EnumerateArray())
+        {
+            string owner = feature.GetProperty("properties").GetProperty("nation").GetString() ?? string.Empty;
+
+            foreach (Ring ring in Rings(feature.GetProperty("geometry")))
+            {
+                MarkEdges(ring.Outer, owner, edgeOwner, frontier);
+                AppendOutline(ring.Outer, province);
+                foreach (var hole in ring.Holes)
+                {
+                    AppendOutline(hole, province);
+                }
+            }
+        }
+
+        foreach ((long a, long b) in frontier)
+        {
+            nation.Add(Decode(a));
+            nation.Add(Decode(b));
+        }
+
+        AddLines(province, MapPalette.ProvinceBorder, 0.010f);
+        AddLines(nation, MapPalette.NationBorder, 0.020f);
+    }
+
+    private void AddLines(List<Vector3> points, Color colour, float height)
+    {
+        if (points.Count == 0)
+        {
+            return;
+        }
+
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = points.ToArray();
+
+        var mesh = new ArrayMesh();
+        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Lines, arrays);
+
+        AddChild(new MeshInstance3D
+        {
+            Mesh = mesh,
+            Position = new Vector3(0f, height, 0f),
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = colour,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            },
+        });
+    }
+
+    private static void MarkEdges(
+        List<Vector2> ring,
+        string owner,
+        Dictionary<(long, long), string> edgeOwner,
+        HashSet<(long, long)> frontier)
+    {
+        for (int i = 0; i < ring.Count; i++)
+        {
+            long a = Encode(ring[i]);
+            long b = Encode(ring[(i + 1) % ring.Count]);
+            var key = a < b ? (a, b) : (b, a);
+
+            if (edgeOwner.TryGetValue(key, out string? other))
+            {
+                if (other == owner)
+                {
+                    frontier.Remove(key);
+                }
+
+                continue;
+            }
+
+            edgeOwner[key] = owner;
+            frontier.Add(key);
+        }
+    }
+
+    private static long Encode(Vector2 p) =>
+        ((long)Mathf.RoundToInt(p.X * 2000f) << 32) ^ (uint)Mathf.RoundToInt(p.Y * 2000f);
+
+    private static Vector3 Decode(long key)
+    {
+        float x = (int)(key >> 32) / 2000f;
+        float y = (int)(uint)key / 2000f;
+        return new Vector3(x * DegreesToUnits, 0f, -y * DegreesToUnits);
+    }
+
+    private static void AppendOutline(List<Vector2> ring, List<Vector3> points)
+    {
+        for (int i = 0; i < ring.Count; i++)
+        {
+            Vector2 a = ring[i];
+            Vector2 b = ring[(i + 1) % ring.Count];
+            points.Add(new Vector3(a.X * DegreesToUnits, 0f, -a.Y * DegreesToUnits));
+            points.Add(new Vector3(b.X * DegreesToUnits, 0f, -b.Y * DegreesToUnits));
+        }
     }
 
     private static Vector3[] BuildCentres(JsonElement features, int provinceCount)
@@ -222,7 +351,7 @@ public sealed partial class ProvinceMap : Node3D
         }
 
         int[] indices = Geometry2D.TriangulatePolygon(outline);
-        Color colour = LandColour;
+        Color colour = MapPalette.BaseFor(NationRise.Core.World.Terrain.OpenGround);
 
         for (int i = 0; i < indices.Length; i++)
         {

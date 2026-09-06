@@ -221,7 +221,7 @@ public sealed partial class SimulationHost : Node
             return;
         }
 
-        map.ApplyOwners(_world.Provinces.Owner, highlightNation);
+        map.ApplyOwners(_world.Provinces.Owner, _world.Provinces.Terrain, _world.Provinces.IsCity, highlightNation);
         GD.Print($"Map painted, highlighting nation {highlightNation}.");
     }
 
