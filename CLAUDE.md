@@ -62,9 +62,12 @@ cd game && dotnet build                  # proyek Godot
   yang mengubah arah desain.
 - **Bug yang ditemukan di tengah jalan diperbaiki saat itu juga**, tidak
   dicatat untuk nanti, kecuali memang mengubah arah desain.
-- **Kalau sebuah laporan menyebut "berikutnya adalah X", kerjakan X.** Menyebut
-  langkah berikutnya lalu berhenti adalah menunda tanpa alasan; kalau langkahnya
-  sudah cukup jelas untuk ditulis, ia cukup jelas untuk dikerjakan.
+- **Kalau sebuah laporan menyebut "berikutnya adalah X", kerjakan X di giliran
+  yang sama.** Menyebut langkah berikutnya lalu berhenti adalah menunda tanpa
+  alasan; kalau langkahnya cukup jelas untuk ditulis, ia cukup jelas untuk
+  dikerjakan. Billy tidak perlu mengetik "lanjut" agar pekerjaan berjalan.
+- **Delegasikan agen untuk pekerjaan yang benar-benar terpisah**, supaya sistem
+  yang tidak saling bergantung dikerjakan bersamaan alih-alih berbaris.
 - Laporkan hasil dan temuan, bukan permintaan izin.
 
 ## Git
