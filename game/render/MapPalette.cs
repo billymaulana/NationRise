@@ -33,16 +33,16 @@ public static class MapPalette
        second, and arbitrary hues are what break that. */
     private static readonly Color[] TerrainBase =
     [
-        new(0.451f, 0.475f, 0.318f), // OpenGround   dry grassland
-        new(0.243f, 0.333f, 0.212f), // Forest       temperate canopy
-        new(0.188f, 0.322f, 0.196f), // Jungle       wet tropical
-        new(0.412f, 0.412f, 0.290f), // Hills
-        new(0.482f, 0.451f, 0.404f), // Mountains    bare rock
-        new(0.702f, 0.612f, 0.427f), // Desert       sand
-        new(0.596f, 0.616f, 0.600f), // Tundra
-        new(0.278f, 0.333f, 0.286f), // Marsh
-        new(0.451f, 0.427f, 0.384f), // Urban
-        new(0.435f, 0.431f, 0.373f), // Suburban
+        new(0.528f, 0.556f, 0.372f), // OpenGround   dry grassland
+        new(0.284f, 0.390f, 0.248f), // Forest       temperate canopy
+        new(0.220f, 0.377f, 0.229f), // Jungle       wet tropical
+        new(0.482f, 0.482f, 0.339f), // Hills
+        new(0.564f, 0.528f, 0.473f), // Mountains    bare rock
+        new(0.821f, 0.716f, 0.500f), // Desert       sand
+        new(0.697f, 0.721f, 0.702f), // Tundra
+        new(0.325f, 0.390f, 0.335f), // Marsh
+        new(0.528f, 0.500f, 0.449f), // Urban
+        new(0.509f, 0.504f, 0.436f), // Suburban
     ];
 
     /*

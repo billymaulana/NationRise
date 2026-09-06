@@ -576,7 +576,10 @@ public sealed partial class ProvinceMap : Node3D
                     vec3 normal = normalize(vec3(-dFdx(h) / span, 0.09, -dFdy(h) / span));
                     float lambert = clamp(dot(normal, normalize(vec3(-0.55, 0.72, -0.42))), 0.0, 1.0);
 
-                    shade *= mix(1.0, 0.62 + lambert * 0.78, clamp(amplitude, 0.0, 1.0));
+                    /* Centred on one so flat ground keeps the tone the palette
+                       gave it and only real slope departs from it. Weighted the
+                       old way, hillshading quietly dimmed every landmass. */
+                    shade *= mix(1.0, 0.80 + lambert * 0.55, clamp(amplitude, 0.0, 1.0));
                 }
 
                 ALBEDO = COLOR.rgb * shade;

@@ -1,4 +1,5 @@
 using Godot;
+using NationRise.Game.Ui;
 using System.Text.Json;
 
 namespace NationRise.Game.Render;
@@ -76,12 +77,13 @@ public sealed partial class CityLabels : Node3D
             var label = new Label3D
             {
                 Text = $"{name} ({population})",
+                Font = UiAssets.Regular,
                 FontSize = LabelSize,
                 Modulate = isPlayer
-                    ? new Color(1.00f, 0.90f, 0.78f)
-                    : new Color(0.88f, 0.89f, 0.87f),
-                OutlineSize = 12,
-                OutlineModulate = new Color(0.04f, 0.06f, 0.09f, 0.9f),
+                    ? new Color(1.00f, 0.93f, 0.82f)
+                    : new Color(0.97f, 0.98f, 0.97f),
+                OutlineSize = 20,
+                OutlineModulate = new Color(0.03f, 0.04f, 0.06f, 0.98f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Disabled,
                 NoDepthTest = true,
                 Position = new Vector3(centre.X * DegreesToUnits, 0.06f, -centre.Y * DegreesToUnits),

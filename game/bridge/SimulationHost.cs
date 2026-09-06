@@ -47,6 +47,7 @@ public sealed partial class SimulationHost : Node
     private Blockade? _blockade;
     private StanceSystem? _stances;
     private UpkeepSystem? _upkeep;
+    private ShortageSystem? _shortage;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -99,6 +100,11 @@ public sealed partial class SimulationHost : Node
         _blockade = new Blockade(_world, _relations, _data.Sea);
         _stances = new StanceSystem(_world, _supply);
         _upkeep = new UpkeepSystem(_world, _stockpile, _buildings);
+
+        /* Built and never connected would mean an army can go unfed for a month
+           with nothing to show for it, which is the state this was in. */
+        _shortage = new ShortageSystem(_world.Nations.Count);
+        _morale.Shortage = _shortage;
 
         _victory = new VictoryTracker(
             _world, _world.Nations.IndexOf("IDN"), CampaignPreset.Of(CampaignLength.Standard));
@@ -974,6 +980,11 @@ public sealed partial class SimulationHost : Node
 
     public bool IsStarved(int nation) => _upkeep?.IsStarved(nation) ?? false;
 
+    public int DaysShortOf(int nation, GameResource resource) =>
+        _shortage?.DaysShortOf(nation, resource) ?? 0;
+
+    public float ShortageMoralePenaltyOf(int nation) => _shortage?.MoralePenaltyOf(nation) ?? 0f;
+
     private void PaintMap(int highlightNation)
     {
         if (_world is null)
@@ -1054,6 +1065,7 @@ public sealed partial class SimulationHost : Node
             {
                 _economy?.RunDay();
                 _upkeep?.RunDay(_armies);
+                _shortage?.RunDay(_stockpile, _upkeep);
                 if (_manpower is not null && _stockpile is not null)
                 {
                     _manpower.RunDay(_stockpile);

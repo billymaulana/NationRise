@@ -1,4 +1,5 @@
 using Godot;
+using NationRise.Game.Ui;
 using System.Text.Json;
 
 namespace NationRise.Game.Render;
@@ -108,6 +109,7 @@ public sealed partial class NationLabels : Node3D
             var label = new Label3D
             {
                 Text = Spaced(Shortened(name)),
+                Font = UiAssets.Bold,
                 FontSize = 34,
                 /* Faint on purpose. A country name is context, not content:
                    it should be legible when looked for and invisible when the
