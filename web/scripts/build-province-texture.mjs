@@ -26,6 +26,7 @@ const NO_PROVINCE = 0xffff
 const here = dirname(fileURLToPath(import.meta.url))
 const source = join(here, '..', 'public', 'data', 'provinces.geojson')
 const target = join(here, '..', 'public', 'data', 'province-ids.png')
+const centresTarget = join(here, '..', 'public', 'data', 'province-centres.json')
 
 const geo = JSON.parse(readFileSync(source, 'utf8'))
 
@@ -212,6 +213,47 @@ for (const feature of geo.features) {
   if (!seen.has(feature.properties.id)) missing.push(feature.properties)
 }
 
+/*
+ * Pusat tiap provinsi dihitung di sini, bukan di peramban. Menghitungnya saat
+ * memuat berarti menyapu delapan juta piksel di utas utama, yang membekukan
+ * antarmuka beberapa detik sebelum peta muncul. Datanya statis, jadi tempatnya
+ * memang di build.
+ *
+ * Diambil dari piksel yang benar-benar dimiliki provinsi, bukan dari
+ * geometrinya: provinsi yang dicap satu piksel di tempat lain harus berlabel di
+ * tempat ia tergambar.
+ */
+function buildCentres() {
+  const sumLon = new Float64Array(geo.features.length)
+  const sumLat = new Float64Array(geo.features.length)
+  const count = new Uint32Array(geo.features.length)
+
+  for (let y = 0; y < HEIGHT; y++) {
+    const lat = 90 - ((y + 0.5) / HEIGHT) * 180
+    const row = y * WIDTH
+
+    for (let x = 0; x < WIDTH; x++) {
+      const id = ids[row + x]
+      if (id === NO_PROVINCE || id >= count.length) continue
+
+      sumLon[id] += ((x + 0.5) / WIDTH) * 360 - 180
+      sumLat[id] += lat
+      count[id]++
+    }
+  }
+
+  const lon = []
+  const lat = []
+  for (let i = 0; i < count.length; i++) {
+    lon.push(count[i] > 0 ? Number((sumLon[i] / count[i]).toFixed(4)) : 0)
+    lat.push(count[i] > 0 ? Number((sumLat[i] / count[i]).toFixed(4)) : 0)
+  }
+
+  return { lon, lat }
+}
+
+writeFileSync(centresTarget, JSON.stringify(buildCentres()))
+
 const rgb = Buffer.alloc(WIDTH * HEIGHT * 3)
 let land = 0
 for (let i = 0; i < ids.length; i++) {
@@ -234,6 +276,7 @@ const stats = {
   hilang: missing.length,
   daratan: `${((100 * land) / ids.length).toFixed(1)}%`,
   berkas: `${(Buffer.byteLength(readFileSync(target)) / 1024).toFixed(0)} KB`,
+  pusat: `${(Buffer.byteLength(readFileSync(centresTarget)) / 1024).toFixed(0)} KB`,
 }
 for (const [k, v] of Object.entries(stats)) console.log(`  ${k.padEnd(10)} ${v}`)
 

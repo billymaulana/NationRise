@@ -130,8 +130,12 @@ export class MapView {
   #zoom = 1
   #frame = 0
 
-  onHover: ((province: number) => void) | null = null
-  onPick: ((province: number) => void) | null = null
+  /* Dipanggil sekali per frame yang digambar. Lapisan di atas memakai ini
+     alih-alih menjalankan requestAnimationFrame sendiri: dua rantai frame yang
+     terpisah berarti salah satunya bisa mati diam-diam tanpa menghentikan yang
+     lain, dan yang tampak di layar hanyalah sebagian antarmuka berhenti
+     diperbarui tanpa galat apa pun. */
+  onFrame: ((width: number, height: number) => void) | null = null
 
   constructor(options: MapViewOptions) {
     this.#idMap = options.idMap
@@ -203,10 +207,31 @@ export class MapView {
     this.#clampCentre()
   }
 
-  zoomBy(factor: number, aspect: number): void {
+  /* Zoom menuju kursor, bukan menuju pusat layar. Zoom ke pusat memaksa pemain
+     menggeser setelah setiap langkah zoom, dan pada peta dunia itu berarti
+     kehilangan tempat yang sedang dilihat. */
+  zoomAt(factor: number, xPixels: number, yPixels: number, width: number, height: number): void {
+    const before = this.#planeAt(xPixels, yPixels, width, height)
+
     this.#zoom = Math.min(64, Math.max(1, this.#zoom * factor))
+    this.#aspect = width / height
+
+    const after = this.#planeAt(xPixels, yPixels, width, height)
+    this.#centre.x += before.x - after.x
+    this.#centre.y += before.y - after.y
+
     this.#clampCentre()
-    this.#applyCamera(aspect)
+    this.#applyCamera(this.#aspect)
+  }
+
+  #planeAt(xPixels: number, yPixels: number, width: number, height: number): Vector2 {
+    const halfHeight = 0.5 / this.#zoom
+    const halfWidth = halfHeight * (width / height)
+
+    return new Vector2(
+      this.#centre.x - halfWidth + (xPixels / width) * halfWidth * 2,
+      this.#centre.y + halfHeight - (yPixels / height) * halfHeight * 2,
+    )
   }
 
   get zoom(): number {
@@ -228,16 +253,30 @@ export class MapView {
      salinan id di CPU alih-alih menarik piksel kembali dari GPU: pembacaan
      balik memaksa sinkronisasi dan menahan frame berikutnya. */
   provinceAt(xPixels: number, yPixels: number, width: number, height: number): number {
+    const plane = this.#planeAt(xPixels, yPixels, width, height)
+    return this.#idMap.idAt((plane.x / 2) * 360, plane.y * 180)
+  }
+
+  /* Bujur dan lintang ke piksel layar, memakai kotak kamera yang sama dengan
+     yang dipakai menggambar. Label diletakkan lewat jalur ini, bukan lewat
+     sprite di dalam scene, supaya ukurannya tetap di layar dan teksnya tetap
+     tajam pada zoom berapa pun. */
+  project(
+    lon: number,
+    lat: number,
+    width: number,
+    height: number,
+  ): { x: number; y: number; visible: boolean } {
     const halfHeight = 0.5 / this.#zoom
     const halfWidth = halfHeight * (width / height)
 
-    const planeX = this.#centre.x - halfWidth + (xPixels / width) * halfWidth * 2
-    const planeY = this.#centre.y + halfHeight - (yPixels / height) * halfHeight * 2
+    const planeX = (lon / 360) * 2
+    const planeY = lat / 180
 
-    const lon = (planeX / 2) * 360
-    const lat = planeY * 180
+    const x = ((planeX - (this.#centre.x - halfWidth)) / (halfWidth * 2)) * width
+    const y = (((this.#centre.y + halfHeight) - planeY) / (halfHeight * 2)) * height
 
-    return this.#idMap.idAt(lon, lat)
+    return { x, y, visible: x >= -80 && x <= width + 80 && y >= -20 && y <= height + 20 }
   }
 
   highlight(province: number): void {
@@ -254,6 +293,7 @@ export class MapView {
     const loop = (): void => {
       const { width, height } = sizeOf()
       this.render(width, height)
+      this.onFrame?.(width, height)
       this.#frame = requestAnimationFrame(loop)
     }
 

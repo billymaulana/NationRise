@@ -2,10 +2,18 @@ import { buildProvinceLut, type ProvinceLut } from '~/render/provinceLut'
 import { loadProvinceIds, NO_PROVINCE, type ProvinceIdMap } from '~/render/provinceIds'
 import { readWorld, type WorldData } from '~/sim/data/WorldFile'
 
+export interface MapLabel {
+  readonly province: number
+  readonly name: string
+  readonly lon: number
+  readonly lat: number
+}
+
 export interface LoadedMap {
   readonly world: WorldData
   readonly idMap: ProvinceIdMap
   readonly lut: ProvinceLut
+  readonly cities: readonly MapLabel[]
   readonly nameOf: (province: number) => string
   readonly nationOf: (province: number) => string
 }
@@ -18,14 +26,15 @@ export interface LoadedMap {
  * data, bukan urusan panel terhadap simulasi.
  */
 export async function loadMap(playerTag: string): Promise<LoadedMap> {
-  const [worldBytes, idMap, geo] = await Promise.all([
+  const [worldBytes, idMap, geo, centres] = await Promise.all([
     fetch('/data/world.bin').then((r) => r.arrayBuffer()),
     loadProvinceIds('/data/province-ids.png'),
     fetch('/data/provinces.geojson').then((r) => r.json() as Promise<GeoJson>),
+    fetch('/data/province-centres.json').then((r) => r.json() as Promise<Centres>),
   ])
 
   const world = readWorld(worldBytes)
-  const lut = buildProvinceLut(world, latitudesFrom(idMap, world.provinceCount))
+  const lut = buildProvinceLut(world, (province) => centres.lat[province] ?? 0)
 
   const player = world.nationTags.indexOf(playerTag)
   for (let province = 0; province < world.provinceCount; province++) {
@@ -48,10 +57,23 @@ export async function loadMap(playerTag: string): Promise<LoadedMap> {
     }
   }
 
+  const cities: MapLabel[] = []
+  for (let province = 0; province < world.provinceCount; province++) {
+    if (!world.isCity(province)) continue
+
+    cities.push({
+      province,
+      name: names[province] ?? '',
+      lon: centres.lon[province] ?? 0,
+      lat: centres.lat[province] ?? 0,
+    })
+  }
+
   return {
     world,
     idMap,
     lut,
+    cities,
     nameOf: (province) => names[province] ?? '',
     nationOf: (province) => nations[province] ?? '',
   }
@@ -61,28 +83,10 @@ interface GeoJson {
   features: { properties: { id: number; name?: string; nation?: string } }[]
 }
 
-/*
- * Lintang wakil tiap provinsi dihitung dari piksel yang benar-benar miliknya,
- * bukan dari geometrinya. Kalau diambil dari geometri, provinsi yang tercap
- * satu piksel di tempat lain akan diwarnai menurut lintang yang tidak sesuai
- * dengan tempatnya tergambar.
- */
-function latitudesFrom(idMap: ProvinceIdMap, provinceCount: number): (province: number) => number {
-  const sum = new Float64Array(provinceCount)
-  const count = new Uint32Array(provinceCount)
-
-  for (let y = 0; y < idMap.height; y++) {
-    const latitude = 90 - ((y + 0.5) / idMap.height) * 180
-    const row = y * idMap.width
-
-    for (let x = 0; x < idMap.width; x++) {
-      const id = idMap.ids[row + x]!
-      if (id === NO_PROVINCE || id >= provinceCount) continue
-
-      sum[id] = sum[id]! + latitude
-      count[id] = count[id]! + 1
-    }
-  }
-
-  return (province) => (count[province]! > 0 ? sum[province]! / count[province]! : 0)
+/* Dihitung saat build dari piksel yang benar-benar dimiliki tiap provinsi.
+   Menghitungnya di sini berarti menyapu delapan juta piksel di utas utama dan
+   membekukan antarmuka beberapa detik sebelum peta muncul. */
+interface Centres {
+  lon: number[]
+  lat: number[]
 }
