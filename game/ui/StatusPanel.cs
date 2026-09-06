@@ -52,6 +52,8 @@ public sealed partial class StatusPanel : PanelContainer
             $"Wars       {_host.ActiveWars,10}\n" +
             $"Buildings  {_host.BuildingLevelsIn(_nation),10}\n" +
             $"Research   {_host.ResearchCompleted(_nation),10}\n" +
+            $"Units      {_host.UnitsInField(_nation),10}\n" +
+            $"Manpower   {_host.StockOf(_nation, GameResource.Manpower),10:N0}\n" +
             "\nSpace pause  +/- speed  F5 save  F9 load";
     }
 }

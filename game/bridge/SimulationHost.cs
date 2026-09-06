@@ -36,6 +36,9 @@ public sealed partial class SimulationHost : Node
     private EconomyTick? _economy;
     private CityBuildings? _buildings;
     private ResearchQueue? _research;
+    private Mobilisation? _mobilisation;
+    private ManpowerPool? _manpower;
+    private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
     private NationBrain? _brain;
@@ -71,6 +74,8 @@ public sealed partial class SimulationHost : Node
         _economy = new EconomyTick(_world, _stockpile);
         _buildings = new CityBuildings(_world, _stockpile);
         _research = new ResearchQueue(_world, _stockpile, _buildings);
+        _mobilisation = new Mobilisation(_world, _stockpile, _buildings, _research);
+        _manpower = new ManpowerPool(_world);
         AssignProvinceResources();
 
         _relations = new Relations(_world.Nations.Count);
@@ -139,15 +144,14 @@ public sealed partial class SimulationHost : Node
             return;
         }
 
-        int nextId = 0;
-        for (int i = 0; i < _world.Provinces.Count && nextId < 400; i++)
+        for (int i = 0; i < _world.Provinces.Count && _nextArmyId < 400; i++)
         {
             if (!_world.Provinces.IsCity[i])
             {
                 continue;
             }
 
-            var army = new Army { Id = nextId++, Nation = _world.Provinces.Owner[i], Province = i };
+            var army = new Army { Id = _nextArmyId++, Nation = _world.Provinces.Owner[i], Province = i };
             army.Add(UnitCatalogue.MotorizedInfantry);
             army.Add(UnitCatalogue.MechanizedInfantry);
             _armies[army.Id] = army;
@@ -410,7 +414,51 @@ public sealed partial class SimulationHost : Node
                 _research.Start(nation, next);
             }
         }
+
+        RaiseTroops();
     }
+
+    /* Nations at war replace losses; nations at peace do not, which keeps the
+       world from filling up with armies nobody intends to use. */
+    private void RaiseTroops()
+    {
+        if (_world is null || _mobilisation is null || _relations is null)
+        {
+            return;
+        }
+
+        for (int province = 0; province < _world.Provinces.Count; province++)
+        {
+            if (!_world.Provinces.IsCity[province] || _mobilisation.IsMobilising(province))
+            {
+                continue;
+            }
+
+            ushort nation = _world.Provinces.Controller[province];
+            if (nation == ProvinceStore.NoOwner || !_relations.EnemiesOf(nation).Any())
+            {
+                continue;
+            }
+
+            foreach (UnitRecipe recipe in UnitRecipes.All)
+            {
+                if (_mobilisation.CanMobilise(province, recipe, out _))
+                {
+                    _mobilisation.Begin(province, recipe);
+                    break;
+                }
+            }
+        }
+    }
+
+    public MobilisationLevel MobilisationOf(int nation) =>
+        _manpower?.LevelOf(nation) ?? MobilisationLevel.Peace;
+
+    public void SetMobilisation(int nation, MobilisationLevel level) =>
+        _manpower?.SetLevel(nation, level);
+
+    public int UnitsInField(int nation) =>
+        _armies.Values.Where(a => a.Nation == nation && !a.IsDestroyed).Sum(a => a.Count);
 
     public int BuildingsUnderway
     {
@@ -544,12 +592,23 @@ public sealed partial class SimulationHost : Node
             _war?.Tick(_armies);
             _buildings?.Tick();
             _research?.Tick();
+
+            if (_mobilisation is not null)
+            {
+                _mobilisation.Tick(_armies, ref _nextArmyId);
+            }
+
             RunNationDevelopment(_world.Clock.Tick);
             _world.Clock.Advance();
 
             if (_world.Clock.Date.Day != dayBefore)
             {
                 _economy?.RunDay();
+                if (_manpower is not null && _stockpile is not null)
+                {
+                    _manpower.RunDay(_stockpile);
+                }
+
                 EmitSignal(SignalName.DayChanged, _world.Clock.Date.Day);
             }
         }
