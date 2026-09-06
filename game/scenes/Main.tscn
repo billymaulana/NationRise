@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://bridge/SimulationHost.cs" id="1"]
 [ext_resource type="Script" path="res://render/ProvinceMap.cs" id="2"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://ui/CommandBar.cs" id="14"]
 [ext_resource type="Script" path="res://dev/Playtest.cs" id="15"]
 [ext_resource type="Script" path="res://ui/Minimap.cs" id="16"]
+[ext_resource type="Script" path="res://render/SeaFloor.cs" id="17"]
 
 [node name="Main" type="Node3D"]
 
@@ -25,6 +26,9 @@ MinutesPerGameDay = 0.02
 
 [node name="ProvinceMap" type="Node3D" parent="."]
 script = ExtResource("2")
+
+[node name="SeaFloor" type="Node3D" parent="."]
+script = ExtResource("17")
 
 [node name="ArmyMarkers" type="Node3D" parent="."]
 script = ExtResource("5")
