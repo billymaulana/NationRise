@@ -117,6 +117,33 @@ public class WorldFileTests
     }
 
     [Fact]
+    public void IndonesianCitiesProduceWhatTheMapResearchDecided()
+    {
+        var world = Load();
+        var state = world.ToWorldState(1);
+        int idn = state.Nations.IndexOf("IDN");
+
+        var produced = new Dictionary<NationRise.Core.Economy.Resource, int>();
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            if (state.Provinces.Owner[i] != idn || !state.Provinces.IsCity[i])
+            {
+                continue;
+            }
+
+            var resource = world.ResourceOf(i);
+            produced[resource] = produced.GetValueOrDefault(resource) + 1;
+        }
+
+        /* Indonesia must stay short of technology: that shortage is what makes
+           the world market matter rather than decorate the interface. */
+        Assert.Equal(1, produced[NationRise.Core.Economy.Resource.Technology]);
+        Assert.True(produced[NationRise.Core.Economy.Resource.Food] >= 3);
+        Assert.True(produced[NationRise.Core.Economy.Resource.Fuel] >= 2);
+        Assert.True(produced[NationRise.Core.Economy.Resource.RareResources] >= 2);
+    }
+
+    [Fact]
     public void WrongMagicIsRejected()
     {
         using var stream = new MemoryStream(new byte[64]);

@@ -26,6 +26,10 @@ for (const f of features) {
   delete f.properties.city_name
   delete f.properties.city_population
   delete f.properties.is_capital
+  if (f.properties.terrain_natural !== undefined) {
+    f.properties.terrain = f.properties.terrain_natural
+    delete f.properties.terrain_natural
+  }
 }
 
 const byNation = new Map()
@@ -105,6 +109,10 @@ for (const [tag, provinces] of byNation) {
     host.feature.properties.city_name = place.properties.NAME ?? place.properties.NAMEASCII ?? ''
     host.feature.properties.city_population = gamePopulation(place.properties.POP_MAX ?? 0)
     host.feature.properties.is_capital = (place.properties.FEATURECLA ?? '').includes('Admin-0 capital')
+    /* Keep what the land was before the city covered it: resource assignment
+       later needs the underlying geography, not the fact that it is now built
+       over. */
+    host.feature.properties.terrain_natural = host.feature.properties.terrain
     host.feature.properties.terrain = TERRAIN_URBAN
     placed++
     assigned++

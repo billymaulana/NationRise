@@ -12,7 +12,7 @@ public sealed class WorldFileException(string message) : Exception(message);
 public static class WorldFile
 {
     private const uint Magic = 0x4e525744;
-    private const ushort SupportedVersion = 1;
+    private const ushort SupportedVersion = 2;
 
     public static WorldData Read(Stream stream)
     {
@@ -46,13 +46,14 @@ public static class WorldFile
         var terrain = reader.ReadBytes(provinceCount);
         var population = ReadArray<float>(reader, provinceCount, sizeof(float), BitConverter.ToSingle);
         var isCity = reader.ReadBytes(provinceCount);
+        var resource = reader.ReadBytes(provinceCount);
         var claimOffsets = ReadArray<int>(reader, provinceCount + 1, sizeof(int), BitConverter.ToInt32);
         var claims = ReadArray<ushort>(reader, claimOffsets[provinceCount], sizeof(ushort), BitConverter.ToUInt16);
 
         var land = ReadGraph(reader, provinceCount);
         var sea = ReadGraph(reader, provinceCount);
 
-        return new WorldData(tags, owner, terrain, population, isCity, claimOffsets, claims, land, sea);
+        return new WorldData(tags, owner, terrain, population, isCity, resource, claimOffsets, claims, land, sea);
     }
 
     private static ProvinceGraph ReadGraph(BinaryReader reader, int provinceCount)
@@ -98,6 +99,7 @@ public sealed class WorldData(
     byte[] terrain,
     float[] population,
     byte[] isCity,
+    byte[] resource,
     int[] claimOffsets,
     ushort[] claims,
     ProvinceGraph land,
@@ -107,6 +109,8 @@ public sealed class WorldData(
     public int ProvinceCount { get; } = owner.Length;
     public ProvinceGraph Land { get; } = land;
     public ProvinceGraph Sea { get; } = sea;
+
+    public Economy.Resource ResourceOf(int province) => (Economy.Resource)resource[province];
 
     public WorldState ToWorldState(ulong seed)
     {

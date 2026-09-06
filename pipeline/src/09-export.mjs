@@ -7,7 +7,12 @@ useRelativePaths()
    without parsing, and geometry the renderer reads. The simulation file
    carries no coordinates at all, which is what keeps the layering honest. */
 const MAGIC = 0x4e525744
-const FORMAT_VERSION = 1
+const FORMAT_VERSION = 2
+
+const RESOURCE_INDEX = new Map([
+  ['Money', 0], ['Manpower', 1], ['Food', 2], ['Fuel', 3],
+  ['Materials', 4], ['Technology', 5], ['RareResources', 6],
+])
 
 const fc = JSON.parse(await readFile(`${OUT}/provinces.json`, 'utf8'))
 const land = JSON.parse(await readFile(`${OUT}/adjacency.json`, 'utf8'))
@@ -22,6 +27,7 @@ const owner = new Uint16Array(count)
 const terrain = new Uint8Array(count)
 const population = new Float32Array(count)
 const isCity = new Uint8Array(count)
+const resource = new Uint8Array(count)
 const claimOffsets = new Int32Array(count + 1)
 const claims = []
 
@@ -32,6 +38,7 @@ features.forEach((f, i) => {
   terrain[i] = f.properties.terrain ?? 0
   population[i] = f.properties.is_city ? (f.properties.city_population ?? 0) : 1
   isCity[i] = f.properties.is_city ? 1 : 0
+  resource[i] = RESOURCE_INDEX.get(f.properties.resource ?? 'Money') ?? 0
   claimOffsets[i] = claims.length
   if (nation !== undefined) claims.push(nation)
 })
@@ -54,6 +61,7 @@ parts.push(Buffer.from(owner.buffer))
 parts.push(Buffer.from(terrain.buffer))
 parts.push(Buffer.from(population.buffer))
 parts.push(Buffer.from(isCity.buffer))
+parts.push(Buffer.from(resource.buffer))
 parts.push(Buffer.from(claimOffsets.buffer))
 parts.push(Buffer.from(new Uint16Array(claims).buffer))
 

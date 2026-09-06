@@ -1,6 +1,9 @@
 using Godot;
 using GodotFile = Godot.FileAccess;
 using NationRise.Core.Data;
+using NationRise.Core.Economy;
+using GameResource = NationRise.Core.Economy.Resource;
+using NationRise.Core.Military;
 using NationRise.Core.Time;
 using NationRise.Core.World;
 
@@ -17,10 +20,12 @@ public sealed partial class SimulationHost : Node
 
     [Export] public ulong Seed { get; set; } = 20260906;
     [Export] public double MinutesPerGameDay { get; set; } = 5.0;
-    [Export] public bool Paused { get; set; } = true;
+    [Export] public bool Paused { get; set; }
 
     private WorldState? _world;
     private WorldData? _data;
+    private Stockpile? _stockpile;
+    private EconomyTick? _economy;
     private double _accumulator;
 
     public WorldState World =>
@@ -44,12 +49,44 @@ public sealed partial class SimulationHost : Node
         _data = WorldFile.Read(stream);
         _world = _data.ToWorldState(Seed);
 
+        _stockpile = new Stockpile(_world.Nations.Count);
+        _economy = new EconomyTick(_world, _stockpile);
+        AssignProvinceResources();
+
         int indonesia = _world.Nations.IndexOf("IDN");
         GD.Print($"World loaded: {_world.Provinces.Count} provinces, {_world.Nations.Count} nations.");
         GD.Print($"Indonesia starts with {_world.VictoryPointsOf((ushort)indonesia)} victory points.");
 
         CallDeferred(nameof(PaintMap), indonesia);
     }
+
+    /* Which good a city produces is derived from its index rather than stored,
+       so the same world file always yields the same economy. Replaced by real
+       resource data once the pipeline emits it. */
+    private void AssignProvinceResources()
+    {
+        if (_world is null || _economy is null)
+        {
+            return;
+        }
+
+        GameResource[] goods =
+        [
+            GameResource.Food, GameResource.Fuel, GameResource.Materials,
+            GameResource.Technology, GameResource.RareResources,
+        ];
+
+        for (int i = 0; i < _world.Provinces.Count; i++)
+        {
+            _economy.AssignResource(i, goods[i % goods.Length]);
+        }
+    }
+
+    public WorldSnapshot Snapshot() =>
+        WorldSnapshot.From(World, []);
+
+    public long StockOf(int nation, GameResource resource) =>
+        _stockpile?.Get(nation, resource) ?? 0;
 
     private void PaintMap(int highlightNation)
     {
@@ -87,6 +124,7 @@ public sealed partial class SimulationHost : Node
 
             if (_world.Clock.Date.Day != dayBefore)
             {
+                _economy?.RunDay();
                 EmitSignal(SignalName.DayChanged, _world.Clock.Date.Day);
             }
         }

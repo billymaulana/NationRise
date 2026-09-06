@@ -1,0 +1,19 @@
+{
+  "note": "Which good each city produces. Indonesia is specified by hand because the map research worked out what each city should be; everywhere else falls back to national traits.",
+  "cities": {
+    "IDN": {
+      "Jakarta": "Materials", "Surabaya": "Materials", "Semarang": "Materials",
+      "Bandung": "Technology", "Medan": "Food", "Palembang": "Fuel",
+      "Makassar": "RareResources", "Denpasar": "Food", "Balikpapan": "Fuel",
+      "Jayapura": "RareResources", "Ambon": "Food", "Manado": "Food"
+    }
+  },
+  "nationTraits": {
+    "note": "Primary and secondary good for nations whose economy is dominated by one thing.",
+    "Fuel": ["SAU", "IRQ", "IRN", "KWT", "ARE", "QAT", "LBY", "DZA", "NGA", "AGO", "VEN", "RUS", "KAZ", "AZE", "NOR", "OMN", "BRN", "TTO", "GNQ", "GAB", "SSD", "TCD"],
+    "Technology": ["JPN", "KOR", "TWN", "SGP", "CHE", "DEU", "NLD", "SWE", "FIN", "DNK", "ISR", "IRL", "AUT", "BEL", "USA", "GBR"],
+    "RareResources": ["COD", "ZMB", "ZWE", "MNG", "CHL", "PER", "BOL", "AUS", "ZAF", "GIN", "NCL", "PNG", "SUR", "GUY", "MRT", "NER"],
+    "Materials": ["CHN", "IND", "BRA", "TUR", "MEX", "POL", "CZE", "ITA", "FRA", "ESP", "THA", "VNM", "MYS", "ZAF", "UKR"],
+    "Food": ["UKR", "ARG", "URY", "PRY", "NZL", "DNK", "FRA", "CAN", "KHM", "MMR", "BGD", "ETH", "TZA", "KEN", "GHA", "CIV", "SDN"]
+  }
+}

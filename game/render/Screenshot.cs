@@ -6,7 +6,7 @@ namespace NationRise.Game.Render;
    map output can be inspected without a human watching the window. */
 public sealed partial class Screenshot : Node
 {
-    [Export] public int FrameToCapture { get; set; } = 20;
+    [Export] public int FrameToCapture { get; set; } = 400;
     [Export] public string OutputPath { get; set; } = "user://map.png";
 
     private int _frame;
