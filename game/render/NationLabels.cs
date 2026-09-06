@@ -106,11 +106,14 @@ public sealed partial class NationLabels : Node3D
             {
                 Text = Spaced(name),
                 FontSize = 34,
+                /* Faint on purpose. A country name is context, not content:
+                   it should be legible when looked for and invisible when the
+                   player is reading city names over the top of it. */
                 Modulate = isPlayer
-                    ? new Color(1.00f, 0.86f, 0.66f, 0.90f)
-                    : new Color(0.90f, 0.91f, 0.89f, 0.62f),
+                    ? new Color(1.00f, 0.86f, 0.66f, 0.72f)
+                    : new Color(0.90f, 0.91f, 0.89f, 0.42f),
                 OutlineSize = 16,
-                OutlineModulate = new Color(0.03f, 0.05f, 0.07f, 0.55f),
+                OutlineModulate = new Color(0.03f, 0.05f, 0.07f, 0.40f),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Disabled,
                 NoDepthTest = true,
                 Position = (sums[nation] / counts[nation]) with { Y = 0.05f },

@@ -14,7 +14,8 @@ public static class MapPalette
     public static readonly Color DeepOcean = new(0.035f, 0.071f, 0.114f);
     public static readonly Color ShelfWater = new(0.114f, 0.216f, 0.286f);
     public static readonly Color Coastline = new(0.87f, 0.91f, 0.93f, 0.85f);
-    public static readonly Color CoastalHaze = new(0.35f, 0.56f, 0.64f, 0.30f);
+    public static readonly Color CoastalHaze = new(0.35f, 0.56f, 0.64f, 0.34f);
+    public static readonly Color OpenShelf = new(0.24f, 0.42f, 0.51f, 0.20f);
     public static readonly Color ProvinceBorder = new(0.08f, 0.10f, 0.11f, 0.34f);
     public static readonly Color NationBorder = new(0.93f, 0.95f, 0.94f, 0.80f);
     public static readonly Color PlayerBorder = new(1.00f, 0.72f, 0.38f, 0.95f);

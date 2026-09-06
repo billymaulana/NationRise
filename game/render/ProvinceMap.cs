@@ -216,12 +216,77 @@ public sealed partial class ProvinceMap : Node3D
         return instance;
     }
 
-    private static StandardMaterial3D GroundMaterial() => new()
+    /*
+       Ground colour is flat per province, so without something breaking it up
+       the map reads as a chart of polygons rather than as land. Two octaves of
+       value noise in world space cross province edges, which is the point: the
+       grain belongs to the ground, not to the administrative unit sitting on
+       it, and that is what hides the facets.
+    */
+    private static ShaderMaterial GroundMaterial()
     {
-        VertexColorUseAsAlbedo = true,
-        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-    };
+        var shader = new Shader
+        {
+            Code = @"
+            shader_type spatial;
+            render_mode unshaded, cull_disabled;
+
+            uniform float grain = 0.18;
+
+            varying vec3 ground;
+
+            void vertex() {
+                ground = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+            }
+
+            /* Deliberately not the fract(sin(dot(...))) hash every shader
+               snippet uses: that one relies on sin losing precision, and
+               Metal computes it accurately enough that the result collapses
+               to a constant and the grain silently disappears. */
+            float hash(vec2 p) {
+                vec3 q = fract(vec3(p.xyx) * 0.1031);
+                q += dot(q, q.yzx + 33.33);
+                return fract((q.x + q.y) * q.z);
+            }
+
+            float value_noise(vec2 p) {
+                vec2 cell = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+
+                float a = hash(cell);
+                float b = hash(cell + vec2(1.0, 0.0));
+                float c = hash(cell + vec2(0.0, 1.0));
+                float d = hash(cell + vec2(1.0, 1.0));
+
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+
+            void fragment() {
+                vec2 p = ground.xz;
+                float region = value_noise(p * 0.85);
+                float coarse = value_noise(p * 3.7);
+                float fine = value_noise(p * 13.3);
+
+                /* The low octave is the one that matters: it is wider than a
+                   province, so it carries a wash of shade straight across the
+                   borders and breaks the faceted look at a glance. */
+                float mixture = region * 0.5 + coarse * 0.32 + fine * 0.18;
+
+                /* Averaging octaves narrows the spread towards the mean, so the
+                   raw mixture only ever strays about 0.15 from centre and the
+                   strength below would mean almost nothing. Stretching it back
+                   out first is what makes `grain` the figure it claims to be. */
+                mixture = clamp((mixture - 0.5) * 2.4 + 0.5, 0.0, 1.0);
+
+                float shade = 1.0 + (mixture - 0.5) * 2.0 * grain;
+                ALBEDO = COLOR.rgb * shade;
+            }
+            ",
+        };
+
+        return new ShaderMaterial { Shader = shader };
+    }
 
     /*
        Diagonal hatching instead of a flat wash. A solid tint at the strength
@@ -417,7 +482,13 @@ public sealed partial class ProvinceMap : Node3D
         _sharedEdges = shared.ToArray();
 
         AddLines(internals, MapPalette.ProvinceBorder, ProvinceLineHeight);
-        AddRibbon(coast, MapPalette.CoastalHaze, 0.055f, CoastHazeHeight, "coast haze");
+
+        /* Three bands standing in for bathymetry. Real depth data would mean
+           another dataset and another million points; two soft rings around
+           every landmass buy the same read, which is that the sea has a shelf
+           and the shelf is where the ports are. */
+        AddRibbon(coast, MapPalette.OpenShelf, 0.155f, CoastHazeHeight - 0.002f, "shelf");
+        AddRibbon(coast, MapPalette.CoastalHaze, 0.058f, CoastHazeHeight, "coast haze");
         AddRibbon(coast, MapPalette.Coastline, 0.013f, CoastHeight, "coastline");
 
         GD.Print($"Borders: {coast.Count / 2} coast, {shared.Count} shared edges.");
@@ -533,13 +604,20 @@ public sealed partial class ProvinceMap : Node3D
         var vertices = new List<Vector3>(segments.Count * 3);
         float half = width * 0.5f;
 
+        /* A segment much shorter than the band is wide extrudes into a spike:
+           its direction is dominated by rounding, and the quad ends up pointing
+           anywhere. Wide bands therefore skip the shortest segments, which a
+           soft halo can afford and a crisp outline cannot. */
+        float minimum = width * 0.30f;
+        float minimumSquared = minimum * minimum;
+
         for (int i = 0; i + 1 < segments.Count; i += 2)
         {
             Vector3 a = segments[i];
             Vector3 b = segments[i + 1];
             Vector3 along = b - a;
 
-            if (along.LengthSquared() < 1e-9f)
+            if (along.LengthSquared() < minimumSquared)
             {
                 continue;
             }
