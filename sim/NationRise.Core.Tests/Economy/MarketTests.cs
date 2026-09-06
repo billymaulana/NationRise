@@ -576,10 +576,12 @@ public class MarketTests
         var market = new WorldMarket(stock);
 
         long byShare = market.QuotaLeftFor(0, Resource.Food);
-        long modest = market.QuotaLeftFor(0, Resource.Food, dailyConsumption: 100);
+        long modest = market.QuotaLeftFor(0, Resource.Food, dailyConsumption: 1_000);
 
+        /* Three days of consumption, since that clears the floor a nation with
+           no consumption at all still gets. */
         Assert.True(modest < byShare);
-        Assert.Equal(300, modest);
+        Assert.Equal(3_000, modest);
     }
 
     [Fact]
