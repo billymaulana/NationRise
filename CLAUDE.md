@@ -52,10 +52,16 @@ cd game && dotnet build                  # proyek Godot
 
 ## Alur kerja
 
+- **Tuntaskan pekerjaan sampai selesai.** Jangan berhenti di tengah untuk
+  melapor dan menunggu. Satu instruksi berarti kerjakan seluruh rantainya:
+  rancang, tulis, uji, perbaiki temuan, commit, push. Laporan datang setelah
+  pekerjaannya berdiri, bukan sebagai jeda di tengah.
 - **Jangan meminta persetujuan berulang untuk pekerjaan yang sudah diinstruksikan.**
   Di proyek ini commit, push, pemasangan alat, dan perubahan berkas dilakukan
   langsung. Berhenti bertanya hanya untuk hal yang benar-benar merusak atau
   yang mengubah arah desain.
+- **Bug yang ditemukan di tengah jalan diperbaiki saat itu juga**, tidak
+  dicatat untuk nanti, kecuali memang mengubah arah desain.
 - Laporkan hasil dan temuan, bukan permintaan izin.
 
 ## Git
