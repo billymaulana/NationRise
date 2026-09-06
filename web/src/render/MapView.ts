@@ -1,4 +1,5 @@
 import {
+  ClampToEdgeWrapping,
   DataTexture,
   LinearFilter,
   Mesh,
@@ -53,61 +54,110 @@ const FRAGMENT = /* glsl */ `
 
   varying vec2 vUv;
 
-  float idAt(vec2 uv) {
-    vec4 t = texture2D(idMap, uv);
-    if (t.b < 0.5) return -1.0;
+  const float NO_PROVINCE = 65535.0;
+
+  float idFrom(vec4 t) {
     return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
   }
 
+  float idAt(vec2 uv) {
+    return idFrom(texture2D(idMap, uv));
+  }
+
   vec4 ownerAt(float id) {
-    if (id < 0.0) return vec4(0.0);
+    if (id >= NO_PROVINCE) return vec4(0.0);
     return texture2D(lut, vec2((id + 0.5) / lutWidth, 0.75));
   }
 
-  void main() {
-    float id = idAt(vUv);
+  /* Derau nilai murah untuk memecah bidang rata. Peta rujukan adalah foto, dan
+     yang paling menelanjangi tiruan berbasis poligon adalah permukaan yang
+     benar-benar seragam — mata langsung membacanya sebagai diagram. */
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
 
-    if (id < 0.0) {
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(
+      mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+      u.y
+    );
+  }
+
+  float grain(vec2 p) {
+    return noise(p * 320.0) * 0.55 + noise(p * 900.0) * 0.30 + noise(p * 2400.0) * 0.15;
+  }
+
+  void main() {
+    vec4 texel0 = texture2D(idMap, vUv);
+    float id = idFrom(texel0);
+    float coast = texel0.b;
+
+    if (id >= NO_PROVINCE) {
       /*
-       * Pita pirus di paparan dangkal adalah hal paling mencolok di peta
-       * rujukan, dan ia mengerjakan sesuatu yang nyata: di kepulauan, perairan
-       * dangkal adalah tempat pelabuhan, pendaratan, dan blokade terjadi.
-       * Mewarnai seluruh laut rata membuang informasi itu.
+       * Laut dibangun dari tiga lapis: kedalaman batimetri, pita paparan yang
+       * mengikuti jarak ke pantai, dan halo pucat tepat di garis pantainya.
+       *
+       * Halo itu hal paling mencolok di peta rujukan dan mengerjakan sesuatu
+       * yang nyata: ia memisahkan darat dari laut jauh lebih tegas daripada
+       * perbedaan warna saja, terutama di kepulauan tempat garis pantainya
+       * berbelit.
        */
       float depth = texture2D(depthMap, vUv).r;
-      gl_FragColor = vec4(mix(shelfWater, deepOcean, smoothstep(0.0, 0.35, depth)), 1.0);
+      vec3 water = mix(shelfWater, deepOcean, smoothstep(0.0, 0.32, depth));
+
+      float shelf = 1.0 - smoothstep(0.02, 0.16, coast);
+      water = mix(water, shelfWater * 1.25, shelf * 0.55);
+
+      float foam = 1.0 - smoothstep(0.0, 0.035, coast);
+      water = mix(water, vec3(0.82, 0.88, 0.90), foam * 0.75);
+
+      water *= 0.94 + grain(vUv) * 0.12;
+
+      gl_FragColor = vec4(water, 1.0);
       return;
     }
 
     vec3 ground = texture2D(lut, vec2((id + 0.5) / lutWidth, 0.25)).rgb;
     vec4 owner = ownerAt(id);
 
-    /* Kebangsaan dilukis sebagai rona tipis, bukan isian. Peta politik yang
-       setiap provinsinya pastel sembarang terbaca sebagai diagram; mempertahankan
-       medannya di bawah membuat pemain melihat sekaligus siapa pemiliknya dan
-       seberapa mahal melintasinya. */
-    vec3 colour = mix(ground, owner.rgb, owner.a * 0.14);
-
     /*
-     * Batas dideteksi dari tekstur id itu sendiri, bukan digambar sebagai
-     * geometri terpisah. Dua ribu provinsi berarti dua ribu jalur garis yang
-     * harus dibangun ulang setiap kali kepemilikan berubah; membandingkan id
-     * tetangga di shader memberi hasil yang sama tanpa geometri sama sekali.
-     *
-     * Batas negara digambar lebih tebal dan lebih terang daripada batas
-     * provinsi karena itulah yang dibaca pemain lebih dulu.
+     * Wilayah pemain menyala, wilayah asing digelapkan. Itu bukan hiasan: di
+     * peta rujukan hanya tanah yang dimiliki yang terang, dan itulah yang
+     * membuat perbatasan terbaca sekali lihat tanpa membaca satu label pun.
      */
+    float mine = step(0.75, owner.a);
+    float held = step(0.25, owner.a);
+
+    /* Diukur dari peta rujukan, bukan dipilih dengan mata: tanah asing di sana
+       adalah 67 persen kecerahan dan 27 persen saturasi dari tanah milik
+       sendiri. Menggelapkannya lebih jauh membuat dunia terbaca kosong; kurang
+       dari itu membuat perbatasan hilang. */
+    vec3 foreign = mix(vec3(dot(ground, vec3(0.33))), ground, 0.27) * 0.67;
+    vec3 unclaimed = mix(deepOcean, ground, 0.34);
+    vec3 colour = mix(mix(unclaimed, foreign, held), ground, mine);
+
+    colour = mix(colour, owner.rgb, owner.a * 0.10);
+    colour *= 0.93 + grain(vUv) * 0.14;
+
+    /* Pantai dari sisi darat juga dipucatkan sedikit, seperti pasir yang
+       terbakar matahari di citra satelit. */
+    colour = mix(colour, colour * 1.35 + 0.05, (1.0 - smoothstep(0.0, 0.03, coast)) * 0.5);
+
     float right = idAt(vUv + vec2(texel.x, 0.0));
     float up = idAt(vUv + vec2(0.0, texel.y));
 
     bool provinceEdge = abs(right - id) > 0.5 || abs(up - id) > 0.5;
-
-    vec3 mine = owner.rgb;
     bool nationEdge =
-      distance(ownerAt(right).rgb, mine) > 0.02 || distance(ownerAt(up).rgb, mine) > 0.02;
+      distance(ownerAt(right).rgb, owner.rgb) > 0.02 ||
+      distance(ownerAt(up).rgb, owner.rgb) > 0.02;
 
     if (provinceEdge) {
-      colour = mix(colour, vec3(0.86, 0.90, 0.90), nationEdge ? 0.75 : 0.28);
+      colour = mix(colour, vec3(0.86, 0.90, 0.90), nationEdge ? 0.78 : 0.24);
     }
 
     if (hovered >= 0.0 && abs(id - hovered) < 0.5) {
@@ -189,6 +239,8 @@ export class MapView {
     texture.minFilter = LinearFilter
     texture.generateMipmaps = false
     texture.colorSpace = NoColorSpace
+    texture.wrapS = ClampToEdgeWrapping
+    texture.wrapT = ClampToEdgeWrapping
     texture.needsUpdate = true
 
     /* Batimetri dibaca dengan penyaringan linear, kebalikan dari tekstur id:
@@ -203,6 +255,12 @@ export class MapView {
     texture.minFilter = NearestFilter
     texture.generateMipmaps = false
     texture.colorSpace = NoColorSpace
+
+    /* Dijepit secara eksplisit, tidak diandalkan pada bawaan: pengulangan di
+       tepi akan menempelkan Asia Timur ke Amerika dan tidak ada yang menandai
+       kesalahannya selain mata. */
+    texture.wrapS = ClampToEdgeWrapping
+    texture.wrapT = ClampToEdgeWrapping
     texture.needsUpdate = true
 
     this.#material.uniforms.idMap!.value = texture
@@ -214,7 +272,9 @@ export class MapView {
 
   resize(width: number, height: number): void {
     this.#renderer.setSize(width, height, false)
-    this.#applyCamera(width / height)
+    this.#aspect = width / height
+    this.#clampCentre()
+    this.#applyCamera(this.#aspect)
   }
 
   #applyCamera(aspect: number): void {
@@ -238,11 +298,19 @@ export class MapView {
   /* Zoom menuju kursor, bukan menuju pusat layar. Zoom ke pusat memaksa pemain
      menggeser setelah setiap langkah zoom, dan pada peta dunia itu berarti
      kehilangan tempat yang sedang dilihat. */
+  /* Zoom paling luar tidak boleh lebih kecil dari yang menutupi viewport.
+     Bidangnya dua kali selebar tingginya, jadi layar yang lebih lebar dari itu
+     akan menyisakan pita kosong di kiri dan kanan — dan pita itu terbaca
+     sebagai peta yang terpotong, bukan sebagai batas dunia. */
+  #minZoom(aspect: number): number {
+    return Math.max(1, aspect / 2)
+  }
+
   zoomAt(factor: number, xPixels: number, yPixels: number, width: number, height: number): void {
     const before = this.#planeAt(xPixels, yPixels, width, height)
 
-    this.#zoom = Math.min(64, Math.max(1, this.#zoom * factor))
     this.#aspect = width / height
+    this.#zoom = Math.min(64, Math.max(this.#minZoom(this.#aspect), this.#zoom * factor))
 
     const after = this.#planeAt(xPixels, yPixels, width, height)
     this.#centre.x += before.x - after.x
@@ -269,6 +337,8 @@ export class MapView {
   /* Sudut peta tidak boleh lepas dari layar: kamera dijepit sehingga bidangnya
      selalu menutupi viewport, dan pada zoom paling luar ia terkunci di tengah. */
   #clampCentre(): void {
+    this.#zoom = Math.max(this.#minZoom(this.#aspect), this.#zoom)
+
     const halfHeight = 0.5 / this.#zoom
     const halfWidth = halfHeight * this.#aspect
     this.#centre.x = Math.min(1 - halfWidth, Math.max(-1 + halfWidth, this.#centre.x))

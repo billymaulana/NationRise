@@ -254,15 +254,89 @@ function buildCentres() {
 
 writeFileSync(centresTarget, JSON.stringify(buildCentres()))
 
+/*
+ * Jarak tiap piksel ke garis pantai terdekat, dihitung dengan transformasi
+ * chamfer dua lintasan.
+ *
+ * Peta rujukan menggambar halo pucat yang memeluk setiap pantai, dan halo itu
+ * mengerjakan sesuatu: ia memisahkan daratan dari laut jauh lebih tegas
+ * daripada perbedaan warna saja, terutama di kepulauan tempat garis pantainya
+ * berbelit. Menghitungnya di shader berarti mencicipi tekstur berkali-kali per
+ * piksel; menghitungnya sekali di sini gratis.
+ *
+ * Kanal biru dipakai untuk ini, dan penanda daratan dipindah ke id: id 0xffff
+ * sudah berarti tidak ada provinsi, jadi kanal terpisah untuk daratan memang
+ * mubazir sejak awal.
+ */
+const COAST_RANGE = 40
+
+function coastDistance() {
+  const NEAR = 3
+  const DIAGONAL = 4
+  const FAR = COAST_RANGE * NEAR
+
+  const distance = new Int32Array(WIDTH * HEIGHT).fill(FAR)
+
+  for (let y = 0; y < HEIGHT; y++) {
+    for (let x = 0; x < WIDTH; x++) {
+      const i = y * WIDTH + x
+      const solid = ids[i] !== NO_PROVINCE
+
+      /* Nol hanya tepat di batas: piksel yang tetangganya berjenis lain. */
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT) continue
+        if ((ids[ny * WIDTH + nx] !== NO_PROVINCE) !== solid) {
+          distance[i] = 0
+          break
+        }
+      }
+    }
+  }
+
+  const relax = (i, from, cost) => {
+    const candidate = distance[from] + cost
+    if (candidate < distance[i]) distance[i] = candidate
+  }
+
+  for (let y = 0; y < HEIGHT; y++) {
+    for (let x = 0; x < WIDTH; x++) {
+      const i = y * WIDTH + x
+      if (x > 0) relax(i, i - 1, NEAR)
+      if (y > 0) relax(i, i - WIDTH, NEAR)
+      if (x > 0 && y > 0) relax(i, i - WIDTH - 1, DIAGONAL)
+      if (x < WIDTH - 1 && y > 0) relax(i, i - WIDTH + 1, DIAGONAL)
+    }
+  }
+
+  for (let y = HEIGHT - 1; y >= 0; y--) {
+    for (let x = WIDTH - 1; x >= 0; x--) {
+      const i = y * WIDTH + x
+      if (x < WIDTH - 1) relax(i, i + 1, NEAR)
+      if (y < HEIGHT - 1) relax(i, i + WIDTH, NEAR)
+      if (x < WIDTH - 1 && y < HEIGHT - 1) relax(i, i + WIDTH + 1, DIAGONAL)
+      if (x > 0 && y < HEIGHT - 1) relax(i, i + WIDTH - 1, DIAGONAL)
+    }
+  }
+
+  const scaled = new Uint8Array(WIDTH * HEIGHT)
+  for (let i = 0; i < distance.length; i++) {
+    scaled[i] = Math.min(255, Math.round((distance[i] / FAR) * 255))
+  }
+
+  return scaled
+}
+
+const coast = coastDistance()
+
 const rgb = Buffer.alloc(WIDTH * HEIGHT * 3)
 let land = 0
 for (let i = 0; i < ids.length; i++) {
   const id = ids[i]
   rgb[i * 3] = id & 0xff
   rgb[i * 3 + 1] = (id >> 8) & 0xff
-  /* 255, bukan 1: shader membaca kanal sebagai float ternormalisasi, sehingga
-     nilai byte 1 menjadi 0,0039 dan setiap uji ambang menganggapnya laut. */
-  rgb[i * 3 + 2] = id === NO_PROVINCE ? 0 : 255
+  rgb[i * 3 + 2] = coast[i]
   if (id !== NO_PROVINCE) land++
 }
 

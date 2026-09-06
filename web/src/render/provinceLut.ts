@@ -47,8 +47,12 @@ export function buildProvinceLut(
 
   return {
     data,
+    /* Alfa membawa kelas kepemilikan, bukan sekadar "ada pemilik": 255 untuk
+       wilayah pemain, 128 untuk negara lain. Peta rujukan menerangkan wilayah
+       pemain dan menggelapkan sisanya, sehingga shader perlu membedakan
+       keduanya, bukan hanya tahu bahwa provinsinya dimiliki seseorang. */
     setOwner(province: number, nation: number, isPlayer: boolean): void {
-      write(data, ownerRow + province * 4, nationColour(nation, isPlayer), 255)
+      write(data, ownerRow + province * 4, nationColour(nation, isPlayer), isPlayer ? 255 : 128)
     },
     clearOwner(province: number): void {
       write(data, ownerRow + province * 4, { r: 0, g: 0, b: 0 }, 0)
