@@ -176,18 +176,26 @@ di sini:
 
 ## Kemajuan
 
-| Subsistem | Status | Uji |
-|---|---|---|
-| Determinism | Selesai, bit-exact dengan C# | 7 |
-| Pembulatan bersama | Selesai, diverifikasi terhadap .NET | 10 |
-| Time | Selesai | 19 |
-| World (struktur inti) | Selesai | 13 |
-| Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan | 11 |
-| Economy (`Resource`) | Selesai | 10 |
-| World (`ProvinceQuery`) | Selesai | 9 |
-| Aritmetika float32 | Selesai, diverifikasi terhadap nilai CoN | 2 |
-| Economy (dasar + `EconomyTick` + `Manpower`) | Selesai | 24 |
-| Sisanya | Belum | — |
+| Subsistem | Status |
+|---|---|
+| Determinism, pembulatan, float32 | Selesai, bit-exact dengan C# |
+| Time | Selesai |
+| World, `ProvinceQuery` | Selesai |
+| Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan |
+| Economy: `Resource`, `ProvinceStatus`, `Stockpile`, `Production` | Selesai |
+| Economy: `EconomyTick`, `Manpower` | Selesai |
+| Economy: `WorldMarket` | Selesai |
+| Military: daun (`UnitClass`, `Army`, `UnitCatalogue`, dll) | Selesai |
+| Buildings: `BuildingType`, `BuildingCost`, `CityBuildings` | Selesai |
+| Economy: `Upkeep`, `ShortageSystem`, `MoraleSystem`, `TradePolicy` | Belum |
+| Research, Victory, Ai, Persistence, sisa Military | Belum |
+
+**207 uji simulasi hijau** (216 termasuk antarmuka).
+
+Jumlahnya tidak dibandingkan lurus dengan 323 uji C#: sebagian uji `[Theory]`
+mekar jadi beberapa kasus di Vitest, dan sebagian uji C# menguji sistem yang
+belum diport sehingga belum bisa dibawa. Yang dijadikan ukuran adalah cakupan
+per subsistem di tabel ini, bukan angka totalnya.
 
 Uji `Data` menjalankan pembacanya terhadap `world.bin` sungguhan dan memeriksa
 angka yang sudah dikunci riset peta: 54 provinsi Indonesia, 12 kota, poin
