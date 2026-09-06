@@ -95,7 +95,16 @@ describe('batas lapisan', () => {
    * bagaimana ia digambar.
    */
   it('tipe di src/sim tidak punya properti bertampilan', async () => {
-    const banned = /\b(colour|color|mesh|texture|sprite|screen|pixel|icon)s?\s*\??\s*:/i
+    /*
+     * Hanya posisi deklarasi properti yang dipindai: awal baris, atau tepat
+     * setelah `{`, `,`, atau `;`. Versi sebelumnya mencocokkan nama di mana pun
+     * sebelum titik dua, sehingga `case StanceKind.Screen:` ikut tertangkap —
+     * padahal Screen di sana adalah jenis sikap militer, bukan urusan layar.
+     * Uji yang menuduh kode yang benar sama merusaknya dengan uji yang
+     * melewatkan kode yang salah.
+     */
+    const banned =
+      /(^|[{;,])\s*(readonly\s+)?(colour|color|mesh|texture|sprite|screen|pixel|icon)s?\s*\??\s*:/i
     const offenders: string[] = []
 
     for (const file of await filesUnder('src/sim')) {
