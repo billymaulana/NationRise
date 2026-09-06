@@ -66,7 +66,8 @@ public sealed partial class ArmyMarkers : Node3D
     public override void _Ready()
     {
         /* A flat quad lying on the map rather than a cube: the marker is a
-           counter on a board, not an object standing in the terrain. */
+           counter on a board, not an object standing in the terrain. Size
+           carries strength, so a large stack is visible before it is read. */
         var mesh = new QuadMesh
         {
             Size = new Vector2(MarkerSize, MarkerSize),
@@ -133,8 +134,15 @@ public sealed partial class ArmyMarkers : Node3D
         {
             ArmyView army = visible[i];
             Vector3 position = _provinceCentres[army.Province] + new Vector3(0f, 0.4f, 0f);
-            multi.SetInstanceTransform(i, new Transform3D(Basis.Identity, position));
-            multi.SetInstanceColor(i, army.Nation == playerNation ? FriendlyColour : HostileColour);
+
+            float scale = 0.75f + Mathf.Min(army.UnitCount, 10) * 0.09f;
+            var basis = Basis.Identity.Scaled(new Vector3(scale, 1f, scale));
+            multi.SetInstanceTransform(i, new Transform3D(basis, position));
+
+            /* Health drains the colour rather than changing it: a battered
+               stack still reads as friendly or hostile at a glance. */
+            Color colour = army.Nation == playerNation ? FriendlyColour : HostileColour;
+            multi.SetInstanceColor(i, colour.Lerp(new Color(0.25f, 0.22f, 0.20f), 1f - army.Health));
         }
     }
 }

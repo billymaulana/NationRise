@@ -32,6 +32,7 @@ public sealed partial class SimulationHost : Node
     private MovementSystem? _movement;
     private WarSystem? _war;
     private NationBrain? _brain;
+    private WarPlanner? _planner;
     private Momentum? _momentum;
     private Relations? _relations;
     private Pathfinder? _pathfinder;
@@ -72,6 +73,7 @@ public sealed partial class SimulationHost : Node
             Graph = _data.Land,
         };
         _brain.AssignArchetypes();
+        _planner = new WarPlanner(_world, _relations, _data.Land);
         _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed));
         _movement = new MovementSystem(_world);
         _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
@@ -145,29 +147,7 @@ public sealed partial class SimulationHost : Node
         Pathfinder.StepCost cost = (_, to, bySea) =>
             MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
 
-        int ordered = 0;
-        foreach (Army army in _armies.Values.Where(a => a.Nation == playerNation))
-        {
-            int target = FindEnemyProvince(army.Nation);
-            if (target < 0)
-            {
-                target = FindNeighbourProvince(army.Province);
-            }
-
-            if (target < 0)
-            {
-                continue;
-            }
-
-            var path = _pathfinder.FindPath(army.Province, target, cost);
-            if (path.Count >= 2)
-            {
-                _movement.Order(army, path);
-                ordered++;
-            }
-        }
-
-        GD.Print($"Spawned {_armies.Count} stacks, {_movement.PendingOrders} moving.");
+        GD.Print($"Spawned {_armies.Count} stacks.");
     }
 
     private int FindEnemyProvince(ushort nation)
@@ -225,6 +205,46 @@ public sealed partial class SimulationHost : Node
             if ((tick + nation) % 168 == 0)
             {
                 _brain.Think(nation, tick);
+            }
+        }
+    }
+
+    /* Idle stacks look for something worth taking, staggered so the whole
+       world does not repath on the same tick. Armies already marching are left
+       alone: changing target mid-advance is how an AI ends up walking in
+       circles. */
+    private void IssueMarchOrders(long tick)
+    {
+        if (_planner is null || _pathfinder is null || _movement is null || _world is null)
+        {
+            return;
+        }
+
+        if (tick % 12 != 0)
+        {
+            return;
+        }
+
+        Pathfinder.StepCost cost = (_, to, bySea) =>
+            MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
+
+        foreach (Army army in _armies.Values)
+        {
+            if (army.IsDestroyed || _movement.IsMoving(army.Id))
+            {
+                continue;
+            }
+
+            TargetChoice? target = _planner.ChooseTarget(army, _armies);
+            if (target is null || target.Value.Province == army.Province)
+            {
+                continue;
+            }
+
+            var path = _pathfinder.FindPath(army.Province, target.Value.Province, cost);
+            if (path.Count >= 2)
+            {
+                _movement.Order(army, path);
             }
         }
     }
@@ -298,6 +318,7 @@ public sealed partial class SimulationHost : Node
             _accumulator -= secondsPerTick;
             int dayBefore = _world.Clock.Date.Day;
             ThinkForNations(_world.Clock.Tick);
+            IssueMarchOrders(_world.Clock.Tick);
             _movement?.Tick(_armies);
             _war?.Tick(_armies);
             _world.Clock.Advance();
