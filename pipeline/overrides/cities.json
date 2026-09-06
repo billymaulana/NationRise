@@ -1,0 +1,9 @@
+{
+  "note": "Cities the population data alone would miss. Population picks the biggest settlements; a strategy map also needs every theatre to have somewhere to mobilise from.",
+  "nations": {
+    "IDN": {
+      "reason": "Population data leaves Maluku and Papua without a city, so the eastern half of the archipelago cannot build or reinforce anything. Balikpapan, Jayapura, Ambon and Manado replace four Javan and Sumatran cities that duplicate theatres already covered.",
+      "force": ["Jakarta", "Surabaya", "Medan", "Bandung", "Palembang", "Semarang", "Makassar", "Denpasar", "Balikpapan", "Jayapura", "Ambon", "Manado"]
+    }
+  }
+}

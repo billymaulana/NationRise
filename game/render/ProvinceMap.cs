@@ -85,7 +85,7 @@ public sealed partial class ProvinceMap : Node3D
             int id = feature.GetProperty("properties").GetProperty("id").GetInt32();
             provinces = Mathf.Max(provinces, id + 1);
 
-            foreach (var ring in OuterRings(feature.GetProperty("geometry")))
+            foreach (Ring ring in Rings(feature.GetProperty("geometry")))
             {
                 AppendTriangles(ring, id, vertices, colours);
             }
@@ -122,14 +122,14 @@ public sealed partial class ProvinceMap : Node3D
         GD.Print($"Map built: {provinces} provinces, {vertices.Count / 3} triangles.");
     }
 
-    private static IEnumerable<List<Vector2>> OuterRings(JsonElement geometry)
+    private static IEnumerable<Ring> Rings(JsonElement geometry)
     {
         string type = geometry.GetProperty("type").GetString() ?? string.Empty;
         JsonElement coordinates = geometry.GetProperty("coordinates");
 
         if (type == "Polygon")
         {
-            yield return ReadRing(coordinates[0]);
+            yield return ReadPolygon(coordinates);
             yield break;
         }
 
@@ -137,10 +137,28 @@ public sealed partial class ProvinceMap : Node3D
         {
             foreach (JsonElement polygon in coordinates.EnumerateArray())
             {
-                yield return ReadRing(polygon[0]);
+                yield return ReadPolygon(polygon);
             }
         }
     }
+
+    /* GeoJSON puts the outline first and any holes after it. Ignoring the
+       holes fills lakes with land colour, which reads as an error on a map
+       where inland water is often the reason a border sits where it does. */
+    private static Ring ReadPolygon(JsonElement polygon)
+    {
+        var outer = ReadRing(polygon[0]);
+        var holes = new List<List<Vector2>>();
+
+        for (int i = 1; i < polygon.GetArrayLength(); i++)
+        {
+            holes.Add(ReadRing(polygon[i]));
+        }
+
+        return new Ring(outer, holes);
+    }
+
+    private readonly record struct Ring(List<Vector2> Outer, List<List<Vector2>> Holes);
 
     private static List<Vector2> ReadRing(JsonElement ring)
     {
@@ -153,19 +171,28 @@ public sealed partial class ProvinceMap : Node3D
         return points;
     }
 
-    private void AppendTriangles(List<Vector2> ring, int province, List<Vector3> vertices, List<Color> colours)
+    private void AppendTriangles(Ring ring, int province, List<Vector3> vertices, List<Color> colours)
     {
-        if (ring.Count < 3)
+        if (ring.Outer.Count < 3)
         {
             return;
         }
 
-        int[] indices = Geometry2D.TriangulatePolygon(ring.ToArray());
+        Vector2[] outline = ring.Outer.ToArray();
+        foreach (var hole in ring.Holes)
+        {
+            if (hole.Count >= 3)
+            {
+                outline = Geometry2D.ClipPolygons(outline, hole.ToArray()).FirstOrDefault() ?? outline;
+            }
+        }
+
+        int[] indices = Geometry2D.TriangulatePolygon(outline);
         Color colour = LandColour;
 
         for (int i = 0; i < indices.Length; i++)
         {
-            Vector2 p = ring[indices[i]];
+            Vector2 p = outline[indices[i]];
             vertices.Add(new Vector3(p.X * DegreesToUnits, 0f, -p.Y * DegreesToUnits));
             colours.Add(colour);
 

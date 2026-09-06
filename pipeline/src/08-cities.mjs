@@ -10,12 +10,23 @@ useRelativePaths()
 const CITY_RATIO = 12 / 54
 const TERRAIN_URBAN = 8
 
+const overrides = JSON.parse(await readFile('overrides/cities.json', 'utf8'))
+
 const loaded = await mapshaper.applyCommands(
   `-i ${RAW}/shp/ne_10m_populated_places.shp -o out.json format=geojson`, {})
 const places = JSON.parse(Buffer.from(loaded['out.json']).toString()).features
 
 const fc = JSON.parse(await readFile(`${OUT}/provinces.json`, 'utf8'))
 const features = fc.features
+
+/* Every stage must be idempotent: the pipeline is rerun constantly during
+   tuning, and leftover flags from an earlier pass silently accumulate. */
+for (const f of features) {
+  delete f.properties.is_city
+  delete f.properties.city_name
+  delete f.properties.city_population
+  delete f.properties.is_capital
+}
 
 const byNation = new Map()
 features.forEach((f, id) => {
@@ -42,13 +53,30 @@ let unmatched = 0
 
 for (const [tag, provinces] of byNation) {
   const quota = Math.max(1, Math.round(provinces.length * CITY_RATIO))
+  const forced = overrides.nations[tag]?.force ?? []
+  const forcedSet = new Set(forced.map((n) => n.toLowerCase()))
+
+  const nameOf = (p) => (p.properties.NAME ?? p.properties.NAMEASCII ?? '').toLowerCase()
+
+  /* Forced cities come first regardless of size: population alone would leave
+     whole theatres with nowhere to mobilise. */
   const candidates = (placesByNation.get(tag) ?? [])
     .filter((p) => (p.properties.POP_MAX ?? 0) > 0)
     .sort((a, b) => {
-      const capital = (x) => (x.properties.FEATURECLA ?? '').includes('Admin-0 capital') ? 1 : 0
+      const isForced = (x) => (forcedSet.has(nameOf(x)) ? 1 : 0)
+      const byForced = isForced(b) - isForced(a)
+      if (byForced !== 0) return byForced
+      const capital = (x) => ((x.properties.FEATURECLA ?? '').includes('Admin-0 capital') ? 1 : 0)
       const byCapital = capital(b) - capital(a)
       return byCapital !== 0 ? byCapital : (b.properties.POP_MAX ?? 0) - (a.properties.POP_MAX ?? 0)
     })
+
+  if (forced.length > 0) {
+    const found = candidates.slice(0, forced.length).filter((p) => forcedSet.has(nameOf(p))).length
+    if (found < forced.length) {
+      console.warn(`  ${tag}: hanya ${found} dari ${forced.length} kota wajib ditemukan di data`)
+    }
+  }
 
   const used = new Set()
   let placed = 0
