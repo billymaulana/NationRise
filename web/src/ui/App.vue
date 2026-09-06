@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import ChromePanel from '~/ui/foundation/ChromePanel.vue'
 import ResourceBar from '~/ui/hud/ResourceBar.vue'
 import type { ResourceReading } from '~/ui/hud/resources'
+import MapCanvas from '~/ui/map/MapCanvas.vue'
 import Showcase from '~/ui/Showcase.vue'
 
 /*
@@ -20,8 +21,11 @@ const readings: ResourceReading[] = [
   { id: 'money', label: 'Money', stock: 59_098, rate: 359 },
 ]
 
-const view = ref<'hud' | 'showcase'>(
-  new URLSearchParams(location.search).get('view') === 'hud' ? 'hud' : 'showcase',
+type View = 'map' | 'showcase' | 'hud'
+
+const requested = new URLSearchParams(location.search).get('view')
+const view = ref<View>(
+  requested === 'hud' || requested === 'showcase' ? requested : 'map',
 )
 </script>
 
@@ -29,7 +33,7 @@ const view = ref<'hud' | 'showcase'>(
   <main class="h-full w-full overflow-auto bg-map-seaDeep">
     <nav class="flex gap-2 px-6 pt-4 text-[11px]">
       <button
-        v-for="option in (['showcase', 'hud'] as const)"
+        v-for="option in (['map', 'showcase', 'hud'] as const)"
         :key="option"
         type="button"
         class="px-3 py-1 tracking-[0.1em] uppercase"
@@ -40,7 +44,11 @@ const view = ref<'hud' | 'showcase'>(
       </button>
     </nav>
 
-    <Showcase v-if="view === 'showcase'" />
+    <div v-if="view === 'map'" class="h-[calc(100%-2.5rem)] w-full">
+      <MapCanvas />
+    </div>
+
+    <Showcase v-else-if="view === 'showcase'" />
 
     <div v-else class="p-4">
       <ResourceBar :readings="readings" />

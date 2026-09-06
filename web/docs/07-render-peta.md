@@ -87,12 +87,77 @@ Semua sudah ada, dihasilkan pipeline yang tidak perlu diubah:
 Disalin ke `public/data/` saat build. Pipeline tetap satu-satunya penghasilnya;
 jalur ini tidak pernah menulis ke `../../pipeline`.
 
+## Temuan dari implementasi
+
+Ditulis setelah lapisan id, pewarnaan, dan pemilihan berdiri.
+
+### Setiap provinsi dijamin satu piksel
+
+Pada 4096 x 2048, **75 dari 2.017 provinsi hilang sama sekali**: mereka lebih
+kecil dari satu piksel dan tidak menutup satu pun pusat piksel, sehingga
+pengisian scanline melewatinya. Monaco, San Marino, Liechtenstein, Sint Maarten,
+Kepulauan Paracel.
+
+Menaikkan resolusi tidak menyelesaikannya, hanya menggeser ambangnya, sambil
+melipatempatkan anggaran memori yang justru ketat di mesin target. Jadi setiap
+provinsi yang hilang dicap satu piksel di titik wakilnya.
+
+Pencapan buta ternyata belum cukup: sembilan mikronegara **berbagi piksel yang
+sama** dan saling menghapus. St. Martin dan Sint Maarten duduk di satu pulau.
+Pencapan sekarang mencari melingkar keluar sampai radius empat, dan hanya boleh
+merebut piksel yang penghuninya masih punya piksel lain. Skripnya keluar dengan
+galat kalau ada provinsi yang tetap tidak terwakili, sehingga kegagalan itu
+tidak bisa lolos diam-diam.
+
+### Batas digambar dari tekstur id, bukan sebagai geometri
+
+Dua ribu provinsi berarti dua ribu jalur garis yang harus dibangun ulang setiap
+kali kepemilikan berubah. Membandingkan id tetangga di shader memberi hasil yang
+sama tanpa geometri sama sekali: kalau id di sebelah berbeda, piksel itu batas
+provinsi; kalau warna pemiliknya juga berbeda, ia batas negara dan digambar
+lebih tebal.
+
+### Kebangsaan adalah rona, bukan isian
+
+Versi pertama mengisi tiap provinsi dengan warna negaranya pada kekuatan 0,38.
+Hasilnya terbaca sebagai diagram politik, persis yang sudah diperingatkan jalur
+Godot: *peta politik yang setiap provinsinya pastel sembarang terbaca sebagai
+diagram*. Sekarang ronanya 0,14 di atas warna medan, dan kepemilikan terutama
+dibaca dari batasnya.
+
+### Dua jebakan yang gagal dalam diam
+
+**Penanda daratan disimpan sebagai byte 1.** Shader membaca kanal sebagai float
+ternormalisasi, sehingga 1 menjadi 0,0039 dan setiap uji ambang menganggapnya
+laut. Seluruh dunia terbaca sebagai samudra, tanpa satu pun galat. Nilainya
+sekarang 255.
+
+**Konversi ruang warna harus dimatikan eksplisit.** Piksel di tekstur id adalah
+bilangan, bukan warna. Kalau peramban memetakannya sebagai sRGB, id-nya rusak
+dan setiap pemilihan menunjuk tempat yang salah. `createImageBitmap` dipanggil
+dengan `colorSpaceConversion: 'none'`, dan teksturnya diberi `NoColorSpace`
+serta penyaringan `NearestFilter` — interpolasi apa pun akan mencampur dua id
+menjadi id ketiga yang tidak ada.
+
+### Anggaran
+
+| | |
+|---|---|
+| Tekstur id | 4096 x 2048, **183 KB** sebagai PNG |
+| Salinan CPU untuk pemilihan | 8,4 juta entri Uint16, 16,8 MB |
+| Tabel pencarian | 2048 x 2 RGBA, 16 KB |
+
+PNG-nya kecil karena isinya bidang datar. Salinan CPU dipakai untuk pemilihan
+supaya tidak perlu menarik piksel kembali dari GPU; pembacaan balik memaksa
+sinkronisasi dan menahan frame berikutnya.
+
 ## Risiko
 
 1. **Citra dasar tidak setara CoN.** Risiko terbesar terhadap janji "percis".
    Bila sumber bebas terbaik pun terlihat jelas berbeda, ini harus dilaporkan,
    bukan ditutupi dengan filter.
 2. **Anggaran tekstur di 8 GB RAM.** Perlu probe lebih awal, bukan di akhir.
-3. **Ketepatan pemilihan di tepi provinsi.** Tekstur ID pada zoom rendah bisa
-   membuat provinsi kecil hilang kurang dari satu piksel. Perlu resolusi minimum
-   atau jalur cadangan berbasis geometri untuk provinsi kecil.
+3. ~~**Ketepatan pemilihan di tepi provinsi.**~~ **Terjawab.** Setiap provinsi
+   dijamin punya sedikitnya satu piksel; lihat bagian temuan di atas. Yang
+   tersisa adalah soal kegunaan, bukan kebenaran: Monaco satu piksel tetap sulit
+   diklik pada zoom luar.

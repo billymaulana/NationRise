@@ -144,6 +144,18 @@ export class WorldData {
     return this.resource[province]! as Resource
   }
 
+  terrainOf(province: number): number {
+    return this.terrain[province]!
+  }
+
+  ownerOf(province: number): number {
+    return this.owner[province]!
+  }
+
+  isCity(province: number): boolean {
+    return this.cityFlags[province] !== 0
+  }
+
   toWorldState(seed: bigint | number): WorldState {
     const provinces = new ProvinceStore(this.provinceCount, this.claimOffsets, this.claims)
     const nations = new NationStore(this.nationTags.length)
