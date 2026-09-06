@@ -39,9 +39,22 @@ public static class MapPalette
 
     /* Nation hue is blended over the terrain rather than replacing it, so a
        desert stays sandy whoever owns it. */
-    public static Color Tinted(Terrain terrain, int nation, bool isPlayer, bool isCity)
+    /* A deterministic per-province wobble in brightness. Real ground is never
+       one flat tone, and without it 2,000 provinces of the same nation read as
+       one undifferentiated slab. Derived from the id so it never flickers. */
+    public static float Variation(int province)
+    {
+        uint h = (uint)province * 2654435761u;
+        h ^= h >> 15;
+        return 0.93f + (h % 1000) / 1000f * 0.14f;
+    }
+
+    public static Color Tinted(Terrain terrain, int nation, bool isPlayer, bool isCity, int province = 0)
     {
         Color ground = BaseFor(terrain);
+
+        float wobble = Variation(province);
+        ground = new Color(ground.R * wobble, ground.G * wobble, ground.B * wobble);
 
         if (nation < 0)
         {

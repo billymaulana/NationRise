@@ -45,7 +45,8 @@ public sealed partial class ProvinceMap : Node3D
                 (NationRise.Core.World.Terrain)(province < terrain.Length ? terrain[province] : 0),
                 nation,
                 nation == highlightNation,
-                province < isCity.Length && isCity[province]);
+                province < isCity.Length && isCity[province],
+                province);
 
             colours[t * 3] = colour;
             colours[t * 3 + 1] = colour;
