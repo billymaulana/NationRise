@@ -85,51 +85,71 @@ export class CityBuildings {
     return this.#queue.get(province) ?? null
   }
 
-  begin(province: number, type: BuildingType): ConstructionOrder {
+  /*
+   * Alasan yang sama menolak perintah dan memberi tahu pemain sebelum ia
+   * mencoba. Tampilan yang menghitung ulang syaratnya sendiri akan menyimpang
+   * dari yang benar-benar ditegakkan, dan tidak satu uji pun menyadarinya.
+   */
+  reasonBlocking(province: number, type: BuildingType): string | null {
     if (this.world.provinces.isCity[province] === 0) {
-      throw new ConstructionRejected('Only cities can build.')
+      return 'Only cities can build.'
     }
 
     if (this.#queue.has(province)) {
-      throw new ConstructionRejected('That city is already building something.')
+      return 'That city is already building something.'
     }
 
     const current = this.levelOf(province, type)
     if (current >= MAX_BUILDING_LEVEL) {
-      throw new ConstructionRejected(`${nameOf(type)} is already at maximum level.`)
+      return `${nameOf(type)} is already at maximum level.`
     }
 
     if (
       current === 0 &&
       this.usedSlots(province) >= slotsFor(this.world.provinces.population[province]!)
     ) {
-      throw new ConstructionRejected('No building slots left in that city.')
+      return 'No building slots left in that city.'
     }
 
-    const level = current + 1
     const nation = this.world.provinces.controller[province]!
 
     const missing = this.shortage?.haltingResource(nation) ?? null
     if (missing !== null) {
-      throw new ConstructionRejected(`Not enough ${Resource[missing]} to start new work.`)
+      return `Not enough ${Resource[missing]} to start new work.`
     }
 
-    const costs = costsFor(type, level)
-    for (const cost of costs) {
+    for (const cost of costsFor(type, current + 1)) {
       if (this.stockpile.get(nation, cost.resource) < cost.amount) {
-        throw new ConstructionRejected(`Not enough ${Resource[cost.resource]}.`)
+        return `Not enough ${Resource[cost.resource]}.`
       }
     }
 
-    for (const cost of costs) {
+    return null
+  }
+
+  /* Morale rendah memperlambat pembangunan, sehingga kota yang baru direbut
+     tidak bisa diubah jadi benteng dalam semalam. Dipisahkan supaya durasi yang
+     ditawarkan sebelum memulai adalah durasi yang akan benar-benar dipakai. */
+  hoursNeeded(province: number, type: BuildingType, level: number): number {
+    const morale = Math.max(this.world.provinces.morale[province]!, f32(0.25))
+    const moraleFactor = divF32(1, addF32(f32(0.75), mulF32(f32(0.25), morale)))
+    return Math.trunc(roundHalfToEven(mulF32(hoursFor(type, level), moraleFactor)))
+  }
+
+  begin(province: number, type: BuildingType): ConstructionOrder {
+    const blocked = this.reasonBlocking(province, type)
+    if (blocked !== null) {
+      throw new ConstructionRejected(blocked)
+    }
+
+    const level = this.levelOf(province, type) + 1
+    const nation = this.world.provinces.controller[province]!
+
+    for (const cost of costsFor(type, level)) {
       this.stockpile.trySpend(nation, cost.resource, cost.amount)
     }
 
-    /* Morale rendah memperlambat pembangunan, sehingga kota yang baru direbut
-       tidak bisa diubah jadi benteng dalam semalam. */
-    const morale = Math.max(this.world.provinces.morale[province]!, f32(0.25))
-    const moraleFactor = divF32(1, addF32(f32(0.75), mulF32(f32(0.25), morale)))
-    const hours = Math.trunc(roundHalfToEven(mulF32(hoursFor(type, level), moraleFactor)))
+    const hours = this.hoursNeeded(province, type, level)
 
     const order: ConstructionOrder = {
       province,

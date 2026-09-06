@@ -16,6 +16,7 @@ export interface LoadedMap {
   readonly lut: ProvinceLut
   readonly cities: readonly MapLabel[]
   readonly depth: DepthField
+  readonly centreOf: (province: number) => { lon: number; lat: number }
   readonly nameOf: (province: number) => string
   readonly nationOf: (province: number) => string
 }
@@ -78,6 +79,10 @@ export async function loadMap(playerTag: string): Promise<LoadedMap> {
     lut,
     cities,
     depth,
+    centreOf: (province) => ({
+      lon: centres.lon[province] ?? 0,
+      lat: centres.lat[province] ?? 0,
+    }),
     nameOf: (province) => names[province] ?? '',
     nationOf: (province) => nations[province] ?? '',
   }

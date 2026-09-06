@@ -29,6 +29,14 @@ const LABEL_OF: Readonly<Record<number, string>> = {
   6: 'Rare Resources',
 }
 
+export function iconOf(resource: number): string {
+  return ICON_OF[resource] ?? 'money'
+}
+
+export function labelOf(resource: number): string {
+  return LABEL_OF[resource] ?? ''
+}
+
 export interface ResourceSnapshot {
   readonly resource: number
   readonly stock: number
@@ -43,8 +51,8 @@ export interface ResourceSnapshot {
  */
 export function readingsFrom(snapshot: readonly ResourceSnapshot[]): ResourceReading[] {
   return snapshot.map((entry) => ({
-    id: ICON_OF[entry.resource] ?? 'money',
-    label: LABEL_OF[entry.resource] ?? '',
+    id: iconOf(entry.resource),
+    label: labelOf(entry.resource),
     stock: entry.stock,
     rate: Math.trunc(entry.perDay / 24),
   }))

@@ -52,7 +52,7 @@ const clock = (): string => {
 
 <template>
   <div class="relative h-full w-full overflow-hidden">
-    <MapCanvas class="absolute inset-0" />
+    <MapCanvas class="absolute inset-0" :armies="world?.armies ?? []" />
 
     <div class="pointer-events-none absolute inset-0">
       <div class="pointer-events-auto absolute left-1/2 top-0 -translate-x-1/2">

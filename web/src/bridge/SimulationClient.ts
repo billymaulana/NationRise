@@ -1,5 +1,5 @@
 import * as Comlink from 'comlink'
-import type { Command, WorldReadout } from '~/bridge/protocol'
+import type { CityReadout, Command, WorldReadout } from '~/bridge/protocol'
 import type { SimulationApi } from '~/bridge/simulation.worker'
 
 /*
@@ -32,6 +32,22 @@ export class SimulationClient {
 
   advance(hours: number): Promise<WorldReadout> {
     return this.#api.advance(hours)
+  }
+
+  cities(): Promise<number[]> {
+    return this.#api.cities()
+  }
+
+  city(province: number): Promise<CityReadout> {
+    return this.#api.city(province)
+  }
+
+  startConstruction(province: number, type: number): Promise<CityReadout> {
+    return this.#api.startConstruction(province, type)
+  }
+
+  cancelConstruction(province: number): Promise<CityReadout> {
+    return this.#api.cancelConstruction(province)
   }
 
   dispose(): void {

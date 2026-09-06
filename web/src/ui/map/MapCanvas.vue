@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import type { ArmyReadout } from '~/bridge/protocol'
 import { loadMap, type MapLabel } from '~/render/loadMap'
 import { MapView } from '~/render/MapView'
 import { NO_PROVINCE } from '~/render/provinceIds'
+import UnitCounter from '~/ui/map/UnitCounter.vue'
 
 const host = ref<HTMLDivElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -26,6 +28,18 @@ interface PlacedLabel {
  * sekaligus akan membanjiri layar jauh sebelum membebani peramban.
  */
 const LABEL_ZOOM = 3
+
+const props = defineProps<{ armies?: readonly ArmyReadout[] }>()
+
+interface PlacedCounter {
+  readonly key: number
+  readonly army: ArmyReadout
+  readonly x: number
+  readonly y: number
+}
+
+const counters = ref<PlacedCounter[]>([])
+let centreOf: ((province: number) => { lon: number; lat: number }) | null = null
 
 const labels = ref<PlacedLabel[]>([])
 const zoomLabel = ref('1.0')
@@ -71,6 +85,7 @@ onMounted(async () => {
 
     view.value = created
     cities = map.cities
+    centreOf = map.centreOf
     status.value =
       `${map.world.provinceCount} provinces, ${map.world.nationTags.length} nations, ` +
       `${map.cities.length} cities`
@@ -109,6 +124,25 @@ onMounted(async () => {
       }
 
       labels.value = placed
+      placeCounters(created, width, height)
+    }
+
+    const placeCounters = (map: MapView, width: number, height: number): void => {
+      if (centreOf === null || created.zoom < LABEL_ZOOM) {
+        if (counters.value.length > 0) counters.value = []
+        return
+      }
+
+      const placed: PlacedCounter[] = []
+      for (const army of props.armies ?? []) {
+        const centre = centreOf(army.province)
+        const point = map.project(centre.lon, centre.lat, width, height)
+        if (!point.visible) continue
+
+        placed.push({ key: army.id, army, x: point.x, y: point.y })
+      }
+
+      counters.value = placed
     }
 
     const describe = (province: number): string =>
@@ -193,6 +227,19 @@ onBeforeUnmount(() => {
 <template>
   <div ref="host" class="relative h-full w-full overflow-hidden">
     <canvas ref="canvas" class="block h-full w-full cursor-crosshair" />
+
+    <div
+      v-for="counter in counters"
+      :key="`unit-${counter.key}`"
+      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+      :style="{ left: `${counter.x}px`, top: `${counter.y + 14}px` }"
+    >
+      <UnitCounter
+        :count="counter.army.count"
+        :health="counter.army.health"
+        :mine="counter.army.mine"
+      />
+    </div>
 
     <div
       v-for="label in labels"
