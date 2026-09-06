@@ -9,7 +9,7 @@ namespace NationRise.Game.Render;
 */
 public sealed partial class MapCamera : Camera3D
 {
-    [Export] public float HomeZoom { get; set; } = 7.0f;
+    [Export] public float HomeZoom { get; set; } = 4.0f;
     [Export] public float MinZoom { get; set; } = 2.0f;
     [Export] public float MaxZoom { get; set; } = 40.0f;
     [Export] public float ZoomStep { get; set; } = 1.15f;

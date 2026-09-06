@@ -25,7 +25,8 @@ public sealed partial class StatusPanel : PanelContainer
         AddChild(margin);
 
         SetAnchorsPreset(LayoutPreset.TopLeft);
-        Position = new Vector2(16, 16);
+        /* Clear of the resource bar along the top edge. */
+        Position = new Vector2(16, 62);
     }
 
     public override void _Process(double delta)
