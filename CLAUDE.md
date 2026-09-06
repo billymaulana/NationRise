@@ -50,6 +50,14 @@ cd game && dotnet build                  # proyek Godot
 ~/Applications/Godot_mono.app/Contents/MacOS/Godot --path game
 ```
 
+## Alur kerja
+
+- **Jangan meminta persetujuan berulang untuk pekerjaan yang sudah diinstruksikan.**
+  Di proyek ini commit, push, pemasangan alat, dan perubahan berkas dilakukan
+  langsung. Berhenti bertanya hanya untuk hal yang benar-benar merusak atau
+  yang mengubah arah desain.
+- Laporkan hasil dan temuan, bukan permintaan izin.
+
 ## Git
 
 - Commit semantic satu baris: `<type>(<scope>): <subject>`, maksimal ~72 karakter,
