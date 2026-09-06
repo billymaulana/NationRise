@@ -103,6 +103,7 @@ public sealed partial class ProvincePanel : PanelContainer
             $"Morale {summary.Morale:P0}\n" +
             $"{(summary.IsCity ? $"Produces {summary.Resource}\n" : string.Empty)}" +
             $"{(summary.IsContested ? "Contested ground\n" : string.Empty)}" +
+            $"Supply: {_host.SupplyAt(province)}{(_host.IsBlockaded(province) ? "  ·  BLOCKADED" : string.Empty)}\n" +
             $"Neighbours: {summary.LandNeighbours} land, {summary.SeaNeighbours} sea";
 
         Visible = true;

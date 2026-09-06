@@ -43,6 +43,8 @@ public sealed partial class SimulationHost : Node
     private WorldMarket? _market;
     private VictoryTracker? _victory;
     private ProvinceQuery? _query;
+    private SupplySystem? _supply;
+    private Blockade? _blockade;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -90,6 +92,10 @@ public sealed partial class SimulationHost : Node
            only appeared once a day actually elapsed. */
         _morale = new MoraleSystem(_world, _relations, _buildings);
         _market = new WorldMarket(_stockpile);
+        _supply = new SupplySystem(_world, _data.Land, _data.Sea);
+        _supply.RecomputeAll();
+        _blockade = new Blockade(_world, _relations, _data.Sea);
+
         _victory = new VictoryTracker(
             _world, _world.Nations.IndexOf("IDN"), CampaignPreset.Of(CampaignLength.Standard));
         _momentum = new Momentum();
@@ -520,6 +526,17 @@ public sealed partial class SimulationHost : Node
         }
     }
 
+    public bool IsBlockaded(int province) => _blockade?.IsBlockaded(province) ?? false;
+
+    public int BlockadedCountOf(int nation) =>
+        _blockade?.BlockadedCountOf((ushort)nation) ?? 0;
+
+    public SupplyStatus SupplyAt(int province) =>
+        _supply?.StatusOf(province) ?? SupplyStatus.Supplied;
+
+    public int CutOffProvincesOf(int nation) =>
+        _supply?.CutOffProvincesOf(nation).Count() ?? 0;
+
     public ProvinceSummary Describe(int province) =>
         _query?.Summarise(province)
         ?? throw new InvalidOperationException("Province names not attached yet.");
@@ -688,6 +705,14 @@ public sealed partial class SimulationHost : Node
             _buildings?.Tick();
             _research?.Tick();
             _victory?.Tick();
+            _supply?.Tick();
+
+            /* Blockades follow fleet movement, so they are recomputed on the
+               same cadence as supply rather than every tick. */
+            if (_world.Clock.Tick % 6 == 0)
+            {
+                _blockade?.Recompute(_armies);
+            }
 
             if (_mobilisation is not null)
             {
@@ -705,6 +730,7 @@ public sealed partial class SimulationHost : Node
                     _manpower.RunDay(_stockpile);
                     _morale?.RunDay(_stockpile);
                     _market?.RunDay();
+                    _blockade?.ApplyDailyEffects();
                     TradeForNations();
                 }
 
