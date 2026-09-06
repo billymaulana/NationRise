@@ -4,6 +4,7 @@ using NationRise.Core.Data;
 using NationRise.Core.Economy;
 using GameResource = NationRise.Core.Economy.Resource;
 using NationRise.Core.Military;
+using System.Linq;
 using NationRise.Core.Time;
 using NationRise.Core.World;
 
@@ -26,6 +27,9 @@ public sealed partial class SimulationHost : Node
     private WorldData? _data;
     private Stockpile? _stockpile;
     private EconomyTick? _economy;
+    private MovementSystem? _movement;
+    private Pathfinder? _pathfinder;
+    private readonly Dictionary<int, Army> _armies = [];
     private double _accumulator;
 
     public WorldState World =>
@@ -53,37 +57,95 @@ public sealed partial class SimulationHost : Node
         _economy = new EconomyTick(_world, _stockpile);
         AssignProvinceResources();
 
+        _movement = new MovementSystem(_world);
+        _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
+
         int indonesia = _world.Nations.IndexOf("IDN");
+        SpawnStartingArmies((ushort)indonesia);
+
         GD.Print($"World loaded: {_world.Provinces.Count} provinces, {_world.Nations.Count} nations.");
         GD.Print($"Indonesia starts with {_world.VictoryPointsOf((ushort)indonesia)} victory points.");
 
         CallDeferred(nameof(PaintMap), indonesia);
     }
 
-    /* Which good a city produces is derived from its index rather than stored,
-       so the same world file always yields the same economy. Replaced by real
-       resource data once the pipeline emits it. */
     private void AssignProvinceResources()
     {
-        if (_world is null || _economy is null)
+        if (_world is null || _economy is null || _data is null)
         {
             return;
         }
 
-        GameResource[] goods =
-        [
-            GameResource.Food, GameResource.Fuel, GameResource.Materials,
-            GameResource.Technology, GameResource.RareResources,
-        ];
-
         for (int i = 0; i < _world.Provinces.Count; i++)
         {
-            _economy.AssignResource(i, goods[i % goods.Length]);
+            _economy.AssignResource(i, _data.ResourceOf(i));
         }
     }
 
+    /* One stack per city, which is where mobilisation happens; enough to show
+       movement working without pretending to be a real order of battle. */
+    private void SpawnStartingArmies(ushort playerNation)
+    {
+        if (_world is null || _pathfinder is null || _movement is null || _data is null)
+        {
+            return;
+        }
+
+        int nextId = 0;
+        for (int i = 0; i < _world.Provinces.Count && nextId < 400; i++)
+        {
+            if (!_world.Provinces.IsCity[i])
+            {
+                continue;
+            }
+
+            var army = new Army { Id = nextId++, Nation = _world.Provinces.Owner[i], Province = i };
+            army.Add(UnitCatalogue.MotorizedInfantry);
+            army.Add(UnitCatalogue.MechanizedInfantry);
+            _armies[army.Id] = army;
+        }
+
+        Pathfinder.StepCost cost = (_, to, bySea) =>
+            MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
+
+        foreach (Army army in _armies.Values.Where(a => a.Nation == playerNation))
+        {
+            int target = FindNeighbourProvince(army.Province);
+            if (target < 0)
+            {
+                continue;
+            }
+
+            var path = _pathfinder.FindPath(army.Province, target, cost);
+            if (path.Count >= 2)
+            {
+                _movement.Order(army, path);
+            }
+        }
+
+        GD.Print($"Spawned {_armies.Count} stacks, {_movement.PendingOrders} moving.");
+    }
+
+    private int FindNeighbourProvince(int from)
+    {
+        if (_data is null)
+        {
+            return -1;
+        }
+
+        var land = _data.Land.NeighboursOf(from);
+        if (land.Length > 0)
+        {
+            return land[0];
+        }
+
+        var sea = _data.Sea.NeighboursOf(from);
+        return sea.Length > 0 ? sea[0] : -1;
+    }
+
     public WorldSnapshot Snapshot() =>
-        WorldSnapshot.From(World, []);
+        WorldSnapshot.From(World, _armies.Values.Select(a =>
+            new ArmyView(a.Id, a.Nation, a.Province, a.Count, a.Health)));
 
     public long StockOf(int nation, GameResource resource) =>
         _stockpile?.Get(nation, resource) ?? 0;
@@ -120,6 +182,7 @@ public sealed partial class SimulationHost : Node
         {
             _accumulator -= secondsPerTick;
             int dayBefore = _world.Clock.Date.Day;
+            _movement?.Tick(_armies);
             _world.Clock.Advance();
 
             if (_world.Clock.Date.Day != dayBefore)

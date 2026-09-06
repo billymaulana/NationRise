@@ -22,6 +22,10 @@ public sealed partial class ProvinceMap : Node3D
 
     public int ProvinceCount { get; private set; }
 
+    private Vector3[] _centres = [];
+
+    public Vector3[] ProvinceCentres => _centres;
+
     public void ApplyOwners(ushort[] owner, int highlightNation)
     {
         if (_surface?.Mesh is not ArrayMesh mesh || _triangleProvince.Count == 0)
@@ -92,6 +96,7 @@ public sealed partial class ProvinceMap : Node3D
         }
 
         ProvinceCount = provinces;
+        _centres = BuildCentres(features, provinces);
 
         if (vertices.Count == 0)
         {
@@ -120,6 +125,35 @@ public sealed partial class ProvinceMap : Node3D
 
         AddChild(_surface);
         GD.Print($"Map built: {provinces} provinces, {vertices.Count / 3} triangles.");
+    }
+
+    private static Vector3[] BuildCentres(JsonElement features, int provinceCount)
+    {
+        var sums = new Vector3[provinceCount];
+        var counts = new int[provinceCount];
+
+        foreach (JsonElement feature in features.EnumerateArray())
+        {
+            int id = feature.GetProperty("properties").GetProperty("id").GetInt32();
+            foreach (Ring ring in Rings(feature.GetProperty("geometry")))
+            {
+                foreach (Vector2 p in ring.Outer)
+                {
+                    sums[id] += new Vector3(p.X * DegreesToUnits, 0f, -p.Y * DegreesToUnits);
+                    counts[id]++;
+                }
+            }
+        }
+
+        for (int i = 0; i < provinceCount; i++)
+        {
+            if (counts[i] > 0)
+            {
+                sums[i] /= counts[i];
+            }
+        }
+
+        return sums;
     }
 
     private static IEnumerable<Ring> Rings(JsonElement geometry)
