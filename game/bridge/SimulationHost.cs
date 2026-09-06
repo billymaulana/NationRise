@@ -202,9 +202,25 @@ public sealed partial class SimulationHost : Node
 
         for (int nation = 0; nation < _world.Nations.Count; nation++)
         {
-            if ((tick + nation) % 168 == 0)
+            if ((tick + nation) % 168 != 0)
             {
-                _brain.Think(nation, tick);
+                continue;
+            }
+
+            _brain.Think(nation, tick);
+
+            foreach (Decision decision in _brain.LastDecisions)
+            {
+                if (decision.Score < Momentum.EntryThresholdFor(DecisionKind.DeclareWar))
+                {
+                    continue;
+                }
+
+                string attacker = _world.Nations.Tag[nation];
+                string target = _world.Nations.Tag[decision.Subject];
+                LastDecisionExplanation =
+                    $"{attacker} -> {target}: {decision.Explain()}\n" +
+                    $"decisive factor: {decision.Decisive.Name}";
             }
         }
     }
@@ -248,6 +264,8 @@ public sealed partial class SimulationHost : Node
             }
         }
     }
+
+    public string LastDecisionExplanation { get; private set; } = string.Empty;
 
     public Archetype ArchetypeOf(int nation) =>
         _brain?.ArchetypeOf(nation) ?? Archetype.Defender;
