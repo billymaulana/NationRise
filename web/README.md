@@ -34,6 +34,20 @@ dibaca.
 ## Perintah
 
 ```sh
-python3 tools/measure.py palette <gambar>        # turunkan token dari piksel
-python3 tools/contactsheet.py out.png 6 300 daftar.txt
+pnpm install
+pnpm data          # salin keluaran pipeline ke public/data; wajib sebelum uji
+pnpm dev
+pnpm test
+pnpm typecheck && pnpm build
+```
+
+`pnpm data` tidak opsional. Aset dunia dihasilkan pipeline dan tidak masuk git,
+sedangkan uji lapisan data membacanya langsung; tanpa itu rangkaian ujinya gagal.
+
+Alat referensi:
+
+```sh
+python3 tools/measure.py regions <gambar> nama X Y W H   # turunkan token dari piksel
+python3 tools/contactsheet.py out.png 6 300 daftar.txt   # indeks korpus referensi
+python3 tools/crop.py out.png 3 <gambar> X Y W H         # bandingkan detail berdampingan
 ```
