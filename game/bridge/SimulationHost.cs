@@ -3,6 +3,7 @@ using GodotFile = Godot.FileAccess;
 using NationRise.Core.Data;
 using NationRise.Core.Economy;
 using GameResource = NationRise.Core.Economy.Resource;
+using NationRise.Core.Diplomacy;
 using NationRise.Core.Military;
 using System.Linq;
 using NationRise.Core.Time;
@@ -28,6 +29,8 @@ public sealed partial class SimulationHost : Node
     private Stockpile? _stockpile;
     private EconomyTick? _economy;
     private MovementSystem? _movement;
+    private WarSystem? _war;
+    private Relations? _relations;
     private Pathfinder? _pathfinder;
     private readonly Dictionary<int, Army> _armies = [];
     private double _accumulator;
@@ -57,10 +60,13 @@ public sealed partial class SimulationHost : Node
         _economy = new EconomyTick(_world, _stockpile);
         AssignProvinceResources();
 
+        _relations = new Relations(_world.Nations.Count);
+        _war = new WarSystem(_world, _relations, new NationRise.Core.Determinism.DeterministicRandom(Seed));
         _movement = new MovementSystem(_world);
         _pathfinder = new Pathfinder(_data.Land, _data.Sea, _world.Provinces.Count);
 
         int indonesia = _world.Nations.IndexOf("IDN");
+        DeclareStartingWars(indonesia);
         SpawnStartingArmies((ushort)indonesia);
 
         GD.Print($"World loaded: {_world.Provinces.Count} provinces, {_world.Nations.Count} nations.");
@@ -79,6 +85,26 @@ public sealed partial class SimulationHost : Node
         for (int i = 0; i < _world.Provinces.Count; i++)
         {
             _economy.AssignResource(i, _data.ResourceOf(i));
+        }
+    }
+
+    /* A scripted opening war until the AI can decide for itself. Neighbours
+       are chosen because their fronts are reachable on foot, which exercises
+       movement, combat and conquest rather than just one of them. */
+    private void DeclareStartingWars(int indonesia)
+    {
+        if (_world is null || _relations is null)
+        {
+            return;
+        }
+
+        foreach (string tag in new[] { "MYS", "PNG", "TLS" })
+        {
+            int other = _world.Nations.IndexOf(tag);
+            if (other >= 0 && other != indonesia)
+            {
+                _relations.Set(indonesia, other, Relation.War);
+            }
         }
     }
 
@@ -108,9 +134,15 @@ public sealed partial class SimulationHost : Node
         Pathfinder.StepCost cost = (_, to, bySea) =>
             MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
 
+        int ordered = 0;
         foreach (Army army in _armies.Values.Where(a => a.Nation == playerNation))
         {
-            int target = FindNeighbourProvince(army.Province);
+            int target = FindEnemyProvince(army.Nation);
+            if (target < 0)
+            {
+                target = FindNeighbourProvince(army.Province);
+            }
+
             if (target < 0)
             {
                 continue;
@@ -120,10 +152,30 @@ public sealed partial class SimulationHost : Node
             if (path.Count >= 2)
             {
                 _movement.Order(army, path);
+                ordered++;
             }
         }
 
         GD.Print($"Spawned {_armies.Count} stacks, {_movement.PendingOrders} moving.");
+    }
+
+    private int FindEnemyProvince(ushort nation)
+    {
+        if (_world is null || _relations is null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < _world.Provinces.Count; i++)
+        {
+            ushort owner = _world.Provinces.Controller[i];
+            if (owner != ProvinceStore.NoOwner && _relations.AtWar(nation, owner))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private int FindNeighbourProvince(int from)
@@ -146,6 +198,11 @@ public sealed partial class SimulationHost : Node
     public WorldSnapshot Snapshot() =>
         WorldSnapshot.From(World, _armies.Values.Select(a =>
             new ArmyView(a.Id, a.Nation, a.Province, a.Count, a.Health)));
+
+    public Relations Relations =>
+        _relations ?? throw new InvalidOperationException("World not loaded.");
+
+    public int BattlesThisTick => _war?.LastReports.Count ?? 0;
 
     public long StockOf(int nation, GameResource resource) =>
         _stockpile?.Get(nation, resource) ?? 0;
@@ -183,6 +240,7 @@ public sealed partial class SimulationHost : Node
             _accumulator -= secondsPerTick;
             int dayBefore = _world.Clock.Date.Day;
             _movement?.Tick(_armies);
+            _war?.Tick(_armies);
             _world.Clock.Advance();
 
             if (_world.Clock.Date.Day != dayBefore)

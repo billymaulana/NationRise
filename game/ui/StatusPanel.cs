@@ -47,6 +47,7 @@ public sealed partial class StatusPanel : PanelContainer
             $"Money      {_host.StockOf(_nation, GameResource.Money),10:N0}\n" +
             $"Food       {_host.StockOf(_nation, GameResource.Food),10:N0}\n" +
             $"Materials  {_host.StockOf(_nation, GameResource.Materials),10:N0}\n" +
-            $"Technology {_host.StockOf(_nation, GameResource.Technology),10:N0}";
+            $"Technology {_host.StockOf(_nation, GameResource.Technology),10:N0}\n" +
+            $"Battles    {_host.BattlesThisTick,10}";
     }
 }
