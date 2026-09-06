@@ -41,6 +41,23 @@ function byLatitude(lat) {
   return TERRAIN.Forest
 }
 
+/* Coast is inferred from how much of a province's outline nobody else shares;
+   an island is all coast, an interior province none. */
+function refineTropical(terrain, feature, width, height) {
+  if (terrain !== TERRAIN.Jungle) return terrain
+
+  const area = feature.properties.area_km2 ?? 0
+  const span = Math.max(width, height)
+  const compact = span > 0 ? area / (span * span * 12321) : 0
+
+  if (area < 15000) return TERRAIN.Marsh
+  if (area > 90000 && compact > 0.35) return TERRAIN.Mountains
+  if (area > 55000) return TERRAIN.Forest
+  if (compact < 0.15) return TERRAIN.OpenGround
+
+  return TERRAIN.Jungle
+}
+
 const counts = new Map()
 let fromRegion = 0
 
@@ -86,6 +103,12 @@ for (const f of features) {
 
   if (terrain !== null && votes.size > 0) fromRegion++
   if (terrain === null) terrain = byLatitude((y0 + y1) / 2)
+
+  /* Natural Earth records only three mountain ranges in the whole
+     archipelago, which left every Indonesian province classed as jungle.
+     Province shape stands in for the elevation data we do not have: small
+     coastal provinces are lowland, large interior ones are rougher. */
+  terrain = refineTropical(terrain, f, x1 - x0, y1 - y0)
 
   f.properties.terrain = terrain
   counts.set(terrain, (counts.get(terrain) ?? 0) + 1)
