@@ -18,10 +18,11 @@ berlaku di dalam `web/`.
 | K15 — peta strategis 3D | **Diubah**, lihat W07 | CoN sebenarnya 2,5D; meniru persis berarti mengikuti itu |
 | K29 — planning dulu, tidak ada kode | **Dicabut** | Billy sudah memberi instruksi kerjakan untuk folder ini |
 | K36 — tidak memakai widget pertanyaan | Tetap berlaku | Preferensi lintas jalur |
+| K11 — i18n id dan en, default Indonesia | **Sebagian diubah**, lihat W17 | Dua bahasa tetap; defaultnya jadi Inggris |
 
 Sisanya diwarisi: pemain tunggal luring (K02), simpan lokal (K03), tidak
 didistribusikan (K04), tingkat kesulitan (K07), data negara realistis (K08),
-real-time bisa dipercepat (K09), dunia penuh (K10), i18n dua bahasa (K11),
+real-time bisa dipercepat (K09), dunia penuh (K10), i18n dua bahasa (K11, dengan default diubah oleh W17),
 main terus setelah menang (K12), target MacBook Air M1 8 GB (K14), empat
 skenario dengan Modern lebih dulu (K17), tiga doktrin (K18), tujuh sumber daya
 tanpa Gold (K19–K26), dua belas kota Indonesia (K27).
@@ -61,6 +62,7 @@ tanpa Gold (K19–K26), dua belas kota Indonesia (K27).
 | W14 | **Tidak ada berkas di luar `web/` yang diubah.** Di luar itu hanya dibaca | sesi 6 |
 | W15 | Tangkapan layar referensi **tidak masuk git**. `reference/` di-ignore | sesi 6 |
 | W16 | Port simulasi dikerjakan **uji dulu**: port berkas uji C#, lihat merah, baru port implementasinya | sesi 6 |
+| W17 | **Bahasa antarmuka default Inggris**, bukan Indonesia. K11 tetap berlaku soal i18n dua bahasa sejak awal; yang berubah hanya defaultnya | sesi 6 |
 
 ## 5. Yang belum dikunci
 
