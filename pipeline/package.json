@@ -1,0 +1,16 @@
+{
+  "name": "nationrise-pipeline",
+  "private": true,
+  "type": "module",
+  "description": "Build-time map data pipeline. Not shipped with the game.",
+  "scripts": {
+    "fetch": "node src/01-fetch.mjs",
+    "dissolve": "node src/02-dissolve.mjs",
+    "adjacency": "node src/03-adjacency.mjs",
+    "build": "npm run fetch && npm run dissolve && npm run adjacency"
+  },
+  "dependencies": {
+    "mapshaper": "^0.6.109",
+    "@turf/turf": "^7.2.0"
+  }
+}
