@@ -117,9 +117,16 @@ const simplified = await mapshaper.applyCommands(
   `-o out.json format=geojson precision=0.0001`, {})
 await writeFile(`${OUT}/game/provinces.geojson`, Buffer.from(simplified['out.json']))
 
+/* Natural Earth carries the English country name only on the admin-0 layer,
+   which the merge stage drops. Reading it back here keeps the map able to
+   write "Indonesia" across Java instead of "IDN". */
+const nationNames = JSON.parse(
+  await readFile(new URL('../overrides/nation-names.json', import.meta.url), 'utf8'))
+
 const nations = tags.map((tag, i) => ({
   index: i,
   tag,
+  name: nationNames[tag] ?? tag,
   provinces: features.filter((f) => f.properties.adm0_a3 === tag).length,
   cities: features.filter((f) => f.properties.adm0_a3 === tag && f.properties.is_city).length,
 }))

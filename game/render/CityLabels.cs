@@ -19,8 +19,11 @@ public sealed partial class CityLabels : Node3D
     [Export] public float ShowAllBelowZoom { get; set; } = 8.0f;
     [Export] public int LabelSize { get; set; } = 32;
 
-    private readonly List<(Label3D Node, int Population, bool IsPlayer)> _labels = [];
+    private readonly List<Placed> _labels = [];
     private MapCamera? _camera;
+    private float _lastZoom = -1f;
+
+    private sealed record Placed(Label3D Node, int Population, bool IsPlayer, Vector3 At, float Width);
 
     public override void _Ready()
     {
@@ -84,7 +87,12 @@ public sealed partial class CityLabels : Node3D
             };
 
             AddChild(label);
-            _labels.Add((label, population, isPlayer));
+
+            /* Half-width in world units at PixelSize 1: the glyph advance of
+               this font averages close to half its size, which is near enough
+               to keep names from colliding. */
+            float halfWidth = label.Text.Length * LabelSize * 0.25f * label.PixelSize;
+            _labels.Add(new Placed(label, population, isPlayer, label.Position, halfWidth));
         }
     }
 
@@ -124,14 +132,28 @@ public sealed partial class CityLabels : Node3D
             return;
         }
 
-        /* A world-wide view cannot show five hundred names without becoming
-           unreadable, so the threshold rises as the player zooms out and only
-           the largest cities survive. */
-        /* The player's own cities are always worth naming; everyone else's
-           compete for space, and at world zoom only the largest survive. A map
-           crowded with names nobody needs is worse than one with none. */
         float zoom = _camera.Size;
 
+        /* Placement is only redone when the view has actually changed size.
+           Sorting and testing five hundred names every frame would cost more
+           than the whole map does. */
+        if (Mathf.Abs(zoom - _lastZoom) < 0.01f)
+        {
+            return;
+        }
+
+        _lastZoom = zoom;
+        Relayout(zoom);
+    }
+
+    /*
+       Names are placed by importance, and one that would land on top of a name
+       already placed is dropped rather than drawn. Four cities of Java printed
+       over each other is worse than three of them printed clearly, which is
+       what the map did before.
+    */
+    private void Relayout(float zoom)
+    {
         int minimumOwn = zoom < 20f ? 0 : 5;
         int minimumOther = zoom switch
         {
@@ -140,9 +162,46 @@ public sealed partial class CityLabels : Node3D
             _ => 7,
         };
 
-        foreach ((Label3D node, int population, bool isPlayer) in _labels)
+        /* Type is drawn at a fixed pixel size, so the ground it covers grows in
+           proportion to how much ground the viewport shows. */
+        float scale = zoom / 8f;
+        var taken = new List<(Vector3 At, float HalfWidth)>(_labels.Count);
+
+        foreach (Placed label in Ordered())
         {
-            node.Visible = population >= (isPlayer ? minimumOwn : minimumOther);
+            bool eligible = label.Population >= (label.IsPlayer ? minimumOwn : minimumOther);
+
+            if (!eligible)
+            {
+                label.Node.Visible = false;
+                continue;
+            }
+
+            float half = label.Width * scale;
+            float height = LabelSize * 0.5f * label.Node.PixelSize * scale;
+
+            bool clear = true;
+            foreach ((Vector3 at, float otherHalf) in taken)
+            {
+                if (Mathf.Abs(label.At.X - at.X) < half + otherHalf
+                    && Mathf.Abs(label.At.Z - at.Z) < height * 1.6f)
+                {
+                    clear = false;
+                    break;
+                }
+            }
+
+            label.Node.Visible = clear;
+            if (clear)
+            {
+                taken.Add((label.At, half));
+            }
         }
     }
+
+    /* The player's own cities win every contest for space, then the largest.
+       A map that drops Jakarta to make room for a foreign town of the same
+       size is answering the wrong question. */
+    private IEnumerable<Placed> Ordered() =>
+        _labels.OrderByDescending(l => l.IsPlayer).ThenByDescending(l => l.Population);
 }

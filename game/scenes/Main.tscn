@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://bridge/SimulationHost.cs" id="1"]
 [ext_resource type="Script" path="res://render/ProvinceMap.cs" id="2"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://ui/ProvincePanel.cs" id="10"]
 [ext_resource type="Script" path="res://ui/BattlePreviewPanel.cs" id="11"]
 [ext_resource type="Script" path="res://ui/ArmyCommand.cs" id="12"]
+[ext_resource type="Script" path="res://render/NationLabels.cs" id="13"]
 
 [node name="Main" type="Node3D"]
 
@@ -27,6 +28,9 @@ script = ExtResource("5")
 
 [node name="CityLabels" type="Node3D" parent="."]
 script = ExtResource("7")
+
+[node name="NationLabels" type="Node3D" parent="."]
+script = ExtResource("13")
 
 [node name="ProvincePicker" type="Node3D" parent="."]
 script = ExtResource("9")
