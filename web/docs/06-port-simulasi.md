@@ -121,9 +121,31 @@ di sini:
 | Determinism | Selesai, bit-exact dengan C# | 7 |
 | Pembulatan bersama | Selesai, diverifikasi terhadap .NET | 10 |
 | Time | Selesai | 19 |
-| World (struktur inti) | Selesai | 18 |
-| World (`ProvinceQuery`) | Menunggu subsistem `Data` — ujinya membaca `world.bin` | — |
+| World (struktur inti) | Selesai | 13 |
+| Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan | 11 |
+| Economy (`Resource`) | Selesai | 10 |
+| World (`ProvinceQuery`) | Selesai | 9 |
 | Sisanya | Belum | — |
+| **Jumlah** | | **79** dari 323 |
+
+Uji `Data` menjalankan pembacanya terhadap `world.bin` sungguhan dan memeriksa
+angka yang sudah dikunci riset peta: 54 provinsi Indonesia, 12 kota, poin
+kemenangan 90 sampai 105, tepat satu kota teknologi, dan sedikitnya sepuluh
+provinsi sengketa. Itu bukti kuat bahwa pembaca biner TypeScript menghasilkan
+struktur yang sama persis dengan pembaca C#, bukan sekadar bisa mengurai.
+
+### Perbedaan sengaja dari versi C#
+
+`WorldFile.Read` di C# menerima `Stream`. Port-nya menerima `ArrayBuffer`, dan
+I/O ditinggalkan ke pemanggil, karena simulasi harus berjalan di Worker
+peramban tempat berkas tidak ada. Uji pelapisan sekarang menolak modul bawaan
+node di `src/sim` supaya batas itu tidak bisa dilanggar diam-diam.
+
+Larik dibaca elemen per elemen lewat `DataView`, bukan dengan membuat pandangan
+typed array di atas buffer. Offset di dalam berkas tidak dijamin selaras: blok
+tag panjangnya tiga bita per negara, sehingga larik sesudahnya bisa mulai di
+alamat ganjil, dan `new Uint16Array(buffer, offset)` melempar untuk offset yang
+bukan kelipatan dua.
 
 ## Verifikasi selesai
 

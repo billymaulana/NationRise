@@ -25,6 +25,25 @@ function importsOf(relative: string): string[] {
 describe('batas lapisan', () => {
   const enginePackages = ['vue', 'three', 'pinia', 'comlink', 'vue-i18n', '@vueuse']
 
+  /* Simulasi harus berjalan di Worker peramban, tempat modul node tidak ada.
+     Membaca berkas adalah tugas pemanggil; pembaca berkas dunia menerima
+     ArrayBuffer justru karena batas ini. */
+  const nodeBuiltins = ['node:fs', 'node:path', 'node:url', 'fs', 'path', 'os', 'child_process']
+
+  it('src/sim tidak memakai modul bawaan node', async () => {
+    const offenders: string[] = []
+
+    for (const file of await filesUnder('src/sim')) {
+      for (const specifier of importsOf(file)) {
+        if (nodeBuiltins.some((p) => specifier === p || specifier.startsWith(`${p}/`))) {
+          offenders.push(`${file} -> ${specifier}`)
+        }
+      }
+    }
+
+    expect(offenders).toEqual([])
+  })
+
   it('src/sim tidak mengimpor engine, framework, atau DOM', async () => {
     const offenders: string[] = []
 
