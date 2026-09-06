@@ -92,6 +92,28 @@ const FRAGMENT = /* glsl */ `
     return noise(p * 320.0) * 0.55 + noise(p * 900.0) * 0.30 + noise(p * 2400.0) * 0.15;
   }
 
+  /*
+   * Bayangan relief semu: gradien derau disinari dari barat laut, konvensi
+   * kartografi yang sama dengan peta cetak.
+   *
+   * Ini bukan ketinggian sungguhan — pipeline tidak menghasilkannya. Yang
+   * dikerjakannya adalah memecah bidang datar per provinsi menjadi permukaan
+   * yang terbaca sebagai daratan. Tanpa itu, peta berbasis poligon langsung
+   * terbaca sebagai diagram betapapun tepat paletnya, karena tidak ada
+   * bentang alam sungguhan yang seragam.
+   */
+  float relief(vec2 p) {
+    float e = 0.0012;
+    float here = grain(p);
+    float east = grain(p + vec2(e, 0.0));
+    float north = grain(p + vec2(0.0, e));
+
+    vec3 normal = normalize(vec3(here - east, here - north, 0.06));
+    vec3 sun = normalize(vec3(-0.6, 0.6, 0.52));
+
+    return clamp(dot(normal, sun), -1.0, 1.0);
+  }
+
   void main() {
     vec4 texel0 = texture2D(idMap, vUv);
     float id = idFrom(texel0);
@@ -116,7 +138,10 @@ const FRAGMENT = /* glsl */ `
       float foam = 1.0 - smoothstep(0.0, 0.035, coast);
       water = mix(water, vec3(0.82, 0.88, 0.90), foam * 0.75);
 
-      water *= 0.94 + grain(vUv) * 0.12;
+      /* Laut mendapat relief yang jauh lebih lemah: permukaannya memang rata,
+         dan yang ditiru di sini hanya riak pencahayaan citra satelit. */
+      water *= 0.95 + grain(vUv) * 0.10;
+      water *= 1.0 + relief(vUv) * 0.09;
 
       gl_FragColor = vec4(water, 1.0);
       return;
@@ -142,7 +167,8 @@ const FRAGMENT = /* glsl */ `
     vec3 colour = mix(mix(unclaimed, foreign, held), ground, mine);
 
     colour = mix(colour, owner.rgb, owner.a * 0.10);
-    colour *= 0.93 + grain(vUv) * 0.14;
+    colour *= 0.90 + grain(vUv) * 0.20;
+    colour *= 1.0 + relief(vUv) * 0.34;
 
     /* Pantai dari sisi darat juga dipucatkan sedikit, seperti pasir yang
        terbakar matahari di citra satelit. */
@@ -157,7 +183,7 @@ const FRAGMENT = /* glsl */ `
       distance(ownerAt(up).rgb, owner.rgb) > 0.02;
 
     if (provinceEdge) {
-      colour = mix(colour, vec3(0.86, 0.90, 0.90), nationEdge ? 0.78 : 0.24);
+      colour = mix(colour, vec3(0.86, 0.90, 0.90), nationEdge ? 0.78 : 0.16);
     }
 
     if (hovered >= 0.0 && abs(id - hovered) < 0.5) {
