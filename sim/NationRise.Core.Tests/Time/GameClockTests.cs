@@ -33,6 +33,18 @@ public class GameClockTests
     }
 
     [Fact]
+    public void RestoreIsTheOnlyWayBackwards()
+    {
+        var clock = new GameClock();
+        clock.AdvanceTo(500);
+
+        clock.RestoreTo(100);
+        Assert.Equal(100, clock.Tick);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => clock.RestoreTo(-1));
+    }
+
+    [Fact]
     public void ClockRefusesToRewind()
     {
         var clock = new GameClock();

@@ -241,7 +241,7 @@ public sealed class SaveState
 
         Array.Copy(Controller, world.Provinces.Controller, Controller.Length);
         Array.Copy(Morale, world.Provinces.Morale, Morale.Length);
-        world.Clock.AdvanceTo(Tick);
+        world.Clock.RestoreTo(Tick);
 
         for (int nation = 0; nation < NationCount && nation < world.Nations.Count; nation++)
         {

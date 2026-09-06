@@ -20,4 +20,13 @@ public sealed class GameClock
 
         Tick = tick;
     }
+
+    /* Loading a save is the one legitimate way time goes backwards. It is a
+       separate method from AdvanceTo so an accidental rewind during play still
+       throws instead of silently corrupting the timeline. */
+    public void RestoreTo(long tick)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(tick);
+        Tick = tick;
+    }
 }

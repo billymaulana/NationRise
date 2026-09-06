@@ -137,6 +137,29 @@ public class SaveFileTests
         Assert.Equal(state.VictoryPointsOf(0), fresh.VictoryPointsOf(0));
     }
 
+    /* Loading into a world that has already run past the save point is the
+       normal case in a running game, and it used to throw. */
+    [Fact]
+    public void SaveCanBeLoadedIntoAWorldThatMovedOn()
+    {
+        var (state, stock, relations, armies) = Fresh();
+        for (int i = 0; i < 72; i++)
+        {
+            state.Clock.Advance();
+        }
+
+        SaveState saved = RoundTrip(SaveState.Capture(state, stock, relations, armies, 0));
+
+        for (int i = 0; i < 48; i++)
+        {
+            state.Clock.Advance();
+        }
+
+        Assert.Equal(120, state.Clock.Tick);
+        saved.RestoreInto(state, stock, relations, armies);
+        Assert.Equal(72, state.Clock.Tick);
+    }
+
     [Fact]
     public void WrongMagicIsRejected()
     {
