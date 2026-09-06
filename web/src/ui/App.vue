@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import ChromePanel from '~/ui/foundation/ChromePanel.vue'
 import ResourceBar from '~/ui/hud/ResourceBar.vue'
 import type { ResourceReading } from '~/ui/hud/resources'
+import CityScreen from '~/ui/city/CityScreen.vue'
 import GameScreen from '~/ui/GameScreen.vue'
 import Showcase from '~/ui/Showcase.vue'
 
@@ -21,11 +22,13 @@ const readings: ResourceReading[] = [
   { id: 'money', label: 'Money', stock: 59_098, rate: 359 },
 ]
 
-type View = 'map' | 'showcase' | 'hud'
+type View = 'map' | 'showcase' | 'hud' | 'city'
 
-const requested = new URLSearchParams(location.search).get('view')
+const views: readonly View[] = ['map', 'showcase', 'hud', 'city']
+
+const requested = new URLSearchParams(location.search).get('view') as View | null
 const view = ref<View>(
-  requested === 'hud' || requested === 'showcase' ? requested : 'map',
+  requested !== null && requested !== 'map' && views.includes(requested) ? requested : 'map',
 )
 </script>
 
@@ -33,7 +36,7 @@ const view = ref<View>(
   <main class="h-full w-full overflow-auto bg-map-seaDeep">
     <nav class="flex gap-2 px-6 pt-4 text-[11px]">
       <button
-        v-for="option in (['map', 'showcase', 'hud'] as const)"
+        v-for="option in views"
         :key="option"
         type="button"
         class="px-3 py-1 tracking-[0.1em] uppercase"
@@ -49,6 +52,8 @@ const view = ref<View>(
     </div>
 
     <Showcase v-else-if="view === 'showcase'" />
+
+    <CityScreen v-else-if="view === 'city'" />
 
     <div v-else class="p-4">
       <ResourceBar :readings="readings" />

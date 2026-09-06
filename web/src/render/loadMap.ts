@@ -92,6 +92,33 @@ interface GeoJson {
   features: { properties: { id: number; name?: string; nation?: string } }[]
 }
 
+export interface ProvinceNames {
+  readonly nameOf: (province: number) => string
+  readonly nationOf: (province: number) => string
+}
+
+/*
+ * Nama saja, tanpa memuat peta. Panel kota membutuhkan teksnya dan tidak lebih;
+ * memanggil loadMap untuk itu menarik peta id berisi jutaan piksel dan medan
+ * kedalaman ke dalam layar yang tidak menggambar sepetak pun.
+ */
+export async function loadProvinceNames(): Promise<ProvinceNames> {
+  const geo = (await fetch('/data/provinces.geojson').then((r) => r.json())) as GeoJson
+  const names = new Map<number, string>()
+  const nations = new Map<number, string>()
+
+  for (const feature of geo.features) {
+    const { id, name, nation } = feature.properties
+    names.set(id, name ?? '')
+    nations.set(id, nation ?? '')
+  }
+
+  return {
+    nameOf: (province) => names.get(province) ?? '',
+    nationOf: (province) => nations.get(province) ?? '',
+  }
+}
+
 /* Dihitung saat build dari piksel yang benar-benar dimiliki tiap provinsi.
    Menghitungnya di sini berarti menyapu delapan juta piksel di utas utama dan
    membekukan antarmuka beberapa detik sebelum peta muncul. */

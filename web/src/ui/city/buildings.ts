@@ -74,28 +74,48 @@ export function formatAmount(value: number): string {
   return GROUPED.format(Math.trunc(value))
 }
 
-/* Populasi disimpan dalam juta; layar rujukan menulisnya sebagai orang. */
+/* Populasi disimpan dalam juta, dan layar rujukan menulisnya begitu juga:
+   Jakarta terbaca 6.0, bukan 6.000.000. */
 export function formatPopulation(millions: number): string {
-  return GROUPED.format(Math.round(millions * 1_000_000))
+  return millions.toFixed(1)
 }
 
 /*
- * Durasi ditulis seperti layar rujukan: hari, jam, menit, dan hanya bagian yang
- * bukan nol. Simulasi menjadwalkan dalam jam bulat, sehingga menit hanya muncul
- * untuk selisih yang memang pecahan jam.
+ * Durasi ditulis panjang seperti layar rujukan — "1 day, 4 hours, 10 min",
+ * "9 hours, 45 min" — dan hanya bagian yang bukan nol yang muncul. Simulasi
+ * menjadwalkan dalam jam bulat, sehingga bagian menit dan detik baru muncul
+ * kalau masukannya memang pecahan jam.
  */
 export function formatDuration(hours: number): string {
-  const whole = Math.trunc(hours)
-  const minutes = Math.round((hours - whole) * 60)
-  const days = Math.trunc(whole / 24)
-  const rest = whole % 24
+  const totalSeconds = Math.round(hours * 3600)
+  const days = Math.trunc(totalSeconds / 86_400)
+  const restHours = Math.trunc((totalSeconds % 86_400) / 3600)
+  const minutes = Math.trunc((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
 
   const parts: string[] = []
-  if (days > 0) parts.push(`${days}d`)
-  if (rest > 0) parts.push(`${rest}h`)
-  if (minutes > 0) parts.push(`${minutes}min`)
+  if (days > 0) parts.push(days === 1 ? '1 day' : `${days} days`)
+  if (restHours > 0) parts.push(restHours === 1 ? '1 hour' : `${restHours} hours`)
+  if (minutes > 0) parts.push(`${minutes} min`)
+  if (seconds > 0) parts.push(`${seconds} sec`)
 
-  return parts.length > 0 ? parts.join(' ') : '0h'
+  return parts.length > 0 ? parts.join(', ') : '0 min'
+}
+
+/* Penalti morale memakai satuan pendek dan rapat — "+ 45min", "+ 2h 10min",
+   "+ 8s" — bukan bentuk panjang yang dipakai durasinya. */
+export function formatDelay(hours: number): string {
+  const totalSeconds = Math.round(hours * 3600)
+  const wholeHours = Math.trunc(totalSeconds / 3600)
+  const minutes = Math.trunc((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  const parts: string[] = []
+  if (wholeHours > 0) parts.push(`${wholeHours}h`)
+  if (minutes > 0) parts.push(`${minutes}min`)
+  if (wholeHours === 0 && minutes === 0 && seconds > 0) parts.push(`${seconds}s`)
+
+  return parts.join(' ')
 }
 
 export function formatPercent(fraction: number): string {
@@ -109,3 +129,11 @@ export function formatPercent(fraction: number): string {
  */
 export const HEALING_PER_DAY = 1
 export const DEFENCE_BONUS = 0
+
+/*
+ * Diukur dari piksel tangkapan layar modal konstruksi; belum ada di
+ * 03-bahasa-visual.md, yang mencatat palet HUD dan layar riset.
+ */
+export const START_GREEN = '#60805d'
+export const MORALE_PENALTY = '#e37969'
+export const LEVEL_BADGE = '#738f39'

@@ -72,3 +72,5 @@ tanpa Gold (K19–K26), dua belas kota Indonesia (K27).
 | Sumber citra peta | CoN memakai citra satelit. Sumber bebas-lisensi yang setara belum dipilih; lihat `07-render-peta.md` |
 | Nasib Gold | K26 menghapus Gold, tetapi klon penuh (W01) menyiratkan ada. Belum diputuskan apakah dihidupkan sebagai mata uang non-berbayar |
 | Multipemain | Di luar cakupan (K02), tetapi CoN adalah gim multipemain. Struktur giliran AI harus meniru rasa multipemain |
+| `requiresCoast` tidak ditegakkan | `BuildingType.requiresCoast` ada tetapi `CityBuildings.begin()` tidak memeriksanya, sehingga kota pedalaman bisa membangun Naval Base. Menegakkannya mengubah perilaku simulasi dan memerahkan uji slot yang ada — perlu keputusan desain, bukan perbaikan diam-diam |
+| Foto kota dan gambar bangunan | Panel kota dan modal konstruksi CoN memakai foto; asetnya belum ada, sementara ini glif datar |

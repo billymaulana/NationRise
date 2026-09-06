@@ -164,6 +164,25 @@ biru seperti sisa antarmuka akan membuatnya tampak masih aktif.
 | Tidak terjangkau | `#a33435` |
 | Terjangkau | `#758a9b` |
 
+### Warna yang ditemukan belakangan
+
+Diukur saat membangun panel kota dan modal konstruksi, tidak ada di §3 karena
+tidak muncul di layar peta:
+
+| Token | Hex | Dipakai di |
+|---|---|---|
+| `start` | `#60805d` | Tombol Start hijau |
+| `morale-penalty` | `#e37969` | Teks penalti morale, salmon |
+| `level-badge` | `#738f39` | Lencana tingkat bangunan |
+
+### Zebra modal konstruksi menyimpang dari §2
+
+Baris di modal konstruksi terukur `#3d4b53` dan `#47565d`, bukan `#40484c` dan
+`#484f53` yang tercatat di skala abu-batu. Selisihnya tiga sampai lima per
+kanal — cukup kecil untuk tidak terlihat berdampingan, tetapi cukup nyata untuk
+dicatat. Skala di §2 diukur dari modal mobilisasi; keduanya tampaknya memakai
+nilai yang sedikit berbeda, dan belum jelas mana yang kanonis.
+
 ### Kurung sudut
 
 Motif yang mudah terlewat: bagian seperti `RESEARCH COSTS` dibingkai hanya oleh
