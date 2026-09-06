@@ -1,0 +1,23 @@
+config_version=5
+
+[application]
+
+config/name="Nation Rise"
+config/description="Single-player offline nation strategy game."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="NationRise.Game"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+textures/vram_compression/import_etc2_astc=true

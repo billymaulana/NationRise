@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="NationRise.Core.Tests/NationRise.Core.Tests.csproj" />
+  <Project Path="NationRise.Core/NationRise.Core.csproj" />
+</Solution>
