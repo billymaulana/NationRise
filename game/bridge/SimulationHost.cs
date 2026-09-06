@@ -46,6 +46,7 @@ public sealed partial class SimulationHost : Node
     private SupplySystem? _supply;
     private Blockade? _blockade;
     private StanceSystem? _stances;
+    private UpkeepSystem? _upkeep;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -97,6 +98,7 @@ public sealed partial class SimulationHost : Node
         _supply.RecomputeAll();
         _blockade = new Blockade(_world, _relations, _data.Sea);
         _stances = new StanceSystem(_world, _supply);
+        _upkeep = new UpkeepSystem(_world, _stockpile, _buildings);
 
         _victory = new VictoryTracker(
             _world, _world.Nations.IndexOf("IDN"), CampaignPreset.Of(CampaignLength.Standard));
@@ -228,8 +230,35 @@ public sealed partial class SimulationHost : Node
     }
 
     public WorldSnapshot Snapshot() =>
-        WorldSnapshot.From(World, _armies.Values.Select(a =>
-            new ArmyView(a.Id, a.Nation, a.Province, a.Count, a.Health)));
+        WorldSnapshot.From(World, _armies.Values
+            .Where(a => !a.IsDestroyed)
+            .Select(a => new ArmyView(a.Id, a.Nation, a.Province, a.Count, a.Health)));
+
+    /* Combat empties a stack's unit list but leaves the stack itself in the
+       table, so without this the map keeps drawing counters for formations that
+       no longer exist and every sweep over the army list carries them. */
+    private void RetireDestroyedArmies()
+    {
+        if (_armies.Count == 0)
+        {
+            return;
+        }
+
+        var gone = new List<int>();
+        foreach ((int id, Army army) in _armies)
+        {
+            if (army.IsDestroyed)
+            {
+                gone.Add(id);
+            }
+        }
+
+        foreach (int id in gone)
+        {
+            _armies.Remove(id);
+            _movement?.Cancel(id);
+        }
+    }
 
     /* Nations think on a stagger: spreading 247 brains across a week of game
        time keeps any single tick cheap and stops the whole world reacting to
@@ -285,9 +314,14 @@ public sealed partial class SimulationHost : Node
         Pathfinder.StepCost cost = (_, to, bySea) =>
             MovementCost.HoursFor(_world.Provinces[to].Terrain, bySea);
 
+        ushort player = PlayerNation;
+
         foreach (Army army in _armies.Values)
         {
-            if (army.IsDestroyed || _movement.IsMoving(army.Id))
+            /* The player's stacks are left out entirely. Without this the war
+               planner retargets them every twelve ticks and an order the player
+               gave survives only until the march that carries it finishes. */
+            if (army.Nation == player || army.IsDestroyed || _movement.IsMoving(army.Id))
             {
                 continue;
             }
@@ -918,15 +952,22 @@ public sealed partial class SimulationHost : Node
     public long StockOf(int nation, GameResource resource) =>
         _stockpile?.Get(nation, resource) ?? 0;
 
-    /* Manpower refills from the population pool rather than from provincial
-       output, so asking the economy for it would report a flat zero. */
-    public long DailyIncomeOf(int nation, GameResource resource) => resource switch
+    /* Net, not gross. Manpower refills from the population pool rather than
+       from provincial output, so asking the economy for it would report a flat
+       zero; everything else pays for the army and the buildings it keeps. */
+    public long DailyIncomeOf(int nation, GameResource resource)
     {
-        GameResource.Manpower => _manpower is null || _stockpile is null
-            ? 0
-            : _manpower.DailyRegenOf(nation, _stockpile),
-        _ => _economy?.DailyIncomeOf(nation, resource) ?? 0,
-    };
+        long produced = resource == GameResource.Manpower
+            ? _manpower is null || _stockpile is null ? 0 : _manpower.DailyRegenOf(nation, _stockpile)
+            : _economy?.DailyIncomeOf(nation, resource) ?? 0;
+
+        return produced - (_upkeep?.DailyCostOf(nation, resource, _armies) ?? 0);
+    }
+
+    public long DailyUpkeepOf(int nation, GameResource resource) =>
+        _upkeep?.DailyCostOf(nation, resource, _armies) ?? 0;
+
+    public bool IsStarved(int nation) => _upkeep?.IsStarved(nation) ?? false;
 
     private void PaintMap(int highlightNation)
     {
@@ -953,8 +994,16 @@ public sealed partial class SimulationHost : Node
             return;
         }
 
-        /* Export overrides the ladder when set, so a debug scene can run far
-           faster than any speed a player can choose. */
+        /* Pause is checked before the override, not after. The override exists
+           so a debug scene can outrun any speed the ladder offers, but it was
+           replacing the whole ladder including the stop at the bottom of it,
+           and in the shipped scene the space bar changed the label and nothing
+           else. */
+        if (Speed == GameSpeed.Paused)
+        {
+            return;
+        }
+
         double secondsPerTick = MinutesPerGameDay > 0.0 && MinutesPerGameDay < 1.0
             ? MinutesPerGameDay * 60.0 / GameDate.HoursPerDay
             : GameSpeedInfo.SecondsPerTick(Speed);
@@ -974,6 +1023,7 @@ public sealed partial class SimulationHost : Node
             IssueMarchOrders(_world.Clock.Tick);
             _movement?.Tick(_armies);
             _war?.Tick(_armies);
+            RetireDestroyedArmies();
             _buildings?.Tick();
             _research?.Tick();
             _victory?.Tick();
@@ -998,6 +1048,7 @@ public sealed partial class SimulationHost : Node
             if (_world.Clock.Date.Day != dayBefore)
             {
                 _economy?.RunDay();
+                _upkeep?.RunDay(_armies);
                 if (_manpower is not null && _stockpile is not null)
                 {
                     _manpower.RunDay(_stockpile);

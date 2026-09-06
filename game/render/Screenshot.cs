@@ -6,9 +6,9 @@ namespace NationRise.Game.Render;
    the viewport to disk so the map can be inspected without a human watching. */
 public sealed partial class Screenshot : Node
 {
-    [Export] public int SaveAtFrame { get; set; } = 900;
-    [Export] public int LoadAtFrame { get; set; } = 1800;
-    [Export] public int FrameToCapture { get; set; } = 2700;
+    [Export] public int SaveAtFrame { get; set; } = 4200;
+    [Export] public int LoadAtFrame { get; set; } = 5100;
+    [Export] public int FrameToCapture { get; set; } = 6600;
     [Export] public string OutputPath { get; set; } = "user://map.png";
 
     private int _frame;

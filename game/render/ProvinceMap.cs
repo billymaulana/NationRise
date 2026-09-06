@@ -45,6 +45,12 @@ public sealed partial class ProvinceMap : Node3D
     private MeshInstance3D? _roads;
     private MeshInstance3D? _ridges;
     private MapCamera? _camera;
+    private Bridge.SimulationHost? _host;
+
+    private ushort[]? _lastOwner;
+    private byte[]? _lastTerrain;
+    private bool[]? _lastCity;
+    private int _lastHighlight;
 
     public int ProvinceCount { get; private set; }
 
@@ -66,6 +72,11 @@ public sealed partial class ProvinceMap : Node3D
             return;
         }
 
+        _lastOwner = owner;
+        _lastTerrain = terrain;
+        _lastCity = isCity;
+        _lastHighlight = highlightNation;
+
         int vertexCount = _triangleProvince.Count * 3;
         var groundColours = new Color[vertexCount];
         var hatchColours = new Color[vertexCount];
@@ -84,9 +95,9 @@ public sealed partial class ProvinceMap : Node3D
 
             var ground_ = (NationRise.Core.World.Terrain)(province < terrain.Length ? terrain[province] : 0);
 
-            Color mark = nation < 0
-                ? new Color(0f, 0f, 0f, 0f)
-                : MapPalette.NationColour(nation, player) with { A = player ? 0.34f : 0.24f };
+            Color mark = OverlayFor(province, nation, player);
+            float rugged = RuggednessOf(
+                (NationRise.Core.World.Terrain)(province < terrain.Length ? terrain[province] : 0));
 
             for (int corner = 0; corner < 3; corner++)
             {
@@ -102,7 +113,8 @@ public sealed partial class ProvinceMap : Node3D
                     soil = soil.Lightened(0.10f);
                 }
 
-                groundColours[index] = MapPalette.ForVertex(MapPalette.WeatheredBy(soil, latitude));
+                Color lit = MapPalette.ForVertex(MapPalette.WeatheredBy(soil, latitude));
+                groundColours[index] = lit with { A = rugged };
                 hatchColours[index] = MapPalette.ForVertex(mark);
             }
         }
@@ -120,8 +132,120 @@ public sealed partial class ProvinceMap : Node3D
         {
             _settlementsBuilt = true;
             BuildSettlements(isCity, terrain);
+            ApplyRelief();
+            GetNodeOrNull<MapCamera>("/root/Main/Camera")?.SetRaised(Raised);
         }
     }
+
+    /*
+       What the surface is answering. Political is the default because owning
+       ground is the game; the others exist because a player asking "can I hold
+       this" or "what will it cost to cross" should not have to read it off a
+       colour that is also carrying nationality.
+    */
+    public enum MapMode : byte
+    {
+        Political = 0,
+        Terrain = 1,
+        Supply = 2,
+    }
+
+    public MapMode Mode { get; private set; } = MapMode.Political;
+    public bool Raised { get; private set; } = true;
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+        {
+            return;
+        }
+
+        switch (key.Keycode)
+        {
+            case Key.M:
+                Mode = (MapMode)(((int)Mode + 1) % 3);
+                Repaint();
+                GD.Print($"Map mode: {Mode}.");
+                return;
+
+            case Key.T:
+                Raised = !Raised;
+                ApplyRelief();
+                GetNodeOrNull<MapCamera>("/root/Main/Camera")?.SetRaised(Raised);
+                GD.Print($"Relief: {(Raised ? "raised" : "flat")}.");
+                return;
+        }
+    }
+
+    private void ApplyRelief()
+    {
+        if (_surface?.MaterialOverride is ShaderMaterial material)
+        {
+            material.SetShaderParameter("relief", Raised ? 1.0f : 0.0f);
+        }
+    }
+
+    /* Repaints from the last ownership pass rather than waiting for the next
+       one: a mode change the player asked for should be on screen now. */
+    private void Repaint()
+    {
+        if (_lastOwner is null || _lastTerrain is null || _lastCity is null)
+        {
+            return;
+        }
+
+        ApplyOwners(_lastOwner, _lastTerrain, _lastCity, _lastHighlight);
+    }
+
+    /* How broken the ground is, which drives the hill shading. Flat country
+       gets none, so relief shows up where it changes how an army moves rather
+       than everywhere at once. */
+    private static float RuggednessOf(NationRise.Core.World.Terrain terrain) => terrain switch
+    {
+        NationRise.Core.World.Terrain.Mountains => 1.00f,
+        NationRise.Core.World.Terrain.Hills => 0.58f,
+        NationRise.Core.World.Terrain.Forest => 0.26f,
+        NationRise.Core.World.Terrain.Jungle => 0.30f,
+        NationRise.Core.World.Terrain.Desert => 0.22f,
+        NationRise.Core.World.Terrain.Tundra => 0.16f,
+        NationRise.Core.World.Terrain.Urban => 0.14f,
+        NationRise.Core.World.Terrain.Suburban => 0.14f,
+        NationRise.Core.World.Terrain.Marsh => 0.08f,
+        _ => 0.10f,
+    };
+
+    private static readonly Color SuppliedTint = new(0.42f, 0.70f, 0.42f);
+    private static readonly Color LowTint = new(0.82f, 0.72f, 0.32f);
+    private static readonly Color CutOffTint = new(0.80f, 0.34f, 0.30f);
+
+    private Color OverlayFor(int province, int nation, bool player)
+    {
+        if (Mode == MapMode.Terrain || nation < 0)
+        {
+            return new Color(0f, 0f, 0f, 0f);
+        }
+
+        if (Mode == MapMode.Political)
+        {
+            return MapPalette.NationColour(nation, player) with { A = player ? 0.34f : 0.24f };
+        }
+
+        _host ??= GetNodeOrNull<Bridge.SimulationHost>("/root/Main/SimulationHost");
+        if (_host is null)
+        {
+            return new Color(0f, 0f, 0f, 0f);
+        }
+
+        Color tint = _host.SupplyAt(province) switch
+        {
+            NationRise.Core.Military.SupplyStatus.Low => LowTint,
+            NationRise.Core.Military.SupplyStatus.CutOff => CutOffTint,
+            _ => SuppliedTint,
+        };
+
+        return tint with { A = 0.42f };
+    }
+
 
     /*
        Cities are drawn as a sketch of their road network and mountains as a
@@ -375,11 +499,18 @@ public sealed partial class ProvinceMap : Node3D
             render_mode unshaded, cull_disabled;
 
             uniform float grain = 0.18;
+            uniform float relief = 1.0;
 
             varying vec3 ground;
+            varying float rugged;
 
             void vertex() {
                 ground = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+
+                /* Alpha carries how broken the ground is, which is the one
+                   per-province number the relief needs and the one channel the
+                   colour was not already using. */
+                rugged = COLOR.a;
             }
 
             /* Deliberately not the fract(sin(dot(...))) hash every shader
@@ -405,6 +536,10 @@ public sealed partial class ProvinceMap : Node3D
                 return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
             }
 
+            float terrain_height(vec2 p) {
+                return value_noise(p * 4.3) * 0.62 + value_noise(p * 15.1) * 0.38;
+            }
+
             void fragment() {
                 vec2 p = ground.xz;
                 float region = value_noise(p * 0.85);
@@ -421,8 +556,29 @@ public sealed partial class ProvinceMap : Node3D
                    strength below would mean almost nothing. Stretching it back
                    out first is what makes `grain` the figure it claims to be. */
                 mixture = clamp((mixture - 0.5) * 2.4 + 0.5, 0.0, 1.0);
-
                 float shade = 1.0 + (mixture - 0.5) * 2.0 * grain;
+
+                /*
+                   Hill shading rather than displaced geometry. Raising the mesh
+                   would push every border ribbon and label below the ground
+                   they belong to; a lit surface reads as relief from the same
+                   camera and leaves the overlays where they are.
+
+                   The gradient is divided by the world size of a pixel so the
+                   slope is measured in map units and the shading does not
+                   change strength as the player zooms.
+                */
+                float amplitude = rugged * relief;
+                if (amplitude > 0.001) {
+                    float h = terrain_height(p) * amplitude;
+                    float span = max(fwidth(p.x), 1e-6);
+
+                    vec3 normal = normalize(vec3(-dFdx(h) / span, 0.09, -dFdy(h) / span));
+                    float lambert = clamp(dot(normal, normalize(vec3(-0.55, 0.72, -0.42))), 0.0, 1.0);
+
+                    shade *= mix(1.0, 0.62 + lambert * 0.78, clamp(amplitude, 0.0, 1.0));
+                }
+
                 ALBEDO = COLOR.rgb * shade;
             }
             ",

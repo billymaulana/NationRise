@@ -122,8 +122,8 @@ public sealed partial class Minimap : Control
         float halfWidth = _camera.Size * 0.5f * (GetViewportRect().Size.X / GetViewportRect().Size.Y);
         float halfDepth = _camera.Size * 0.5f;
 
-        Vector2 centre = ToMinimap(_camera.Position.X, _camera.Position.Z);
-        Vector2 corner = ToMinimap(_camera.Position.X - halfWidth, _camera.Position.Z - halfDepth);
+        Vector2 centre = ToMinimap(_camera.Focus.X, _camera.Focus.Z);
+        Vector2 corner = ToMinimap(_camera.Focus.X - halfWidth, _camera.Focus.Z - halfDepth);
 
         var size = new Vector2(Mathf.Abs(centre.X - corner.X) * 2f, Mathf.Abs(centre.Y - corner.Y) * 2f);
         var box = new Rect2(centre - size * 0.5f, size);
