@@ -1,3 +1,4 @@
+using NationRise.Core.Data;
 using NationRise.Core.World;
 
 namespace NationRise.Core.Military;
@@ -29,7 +30,7 @@ public sealed class MovementOrder
    tick, never in a frame callback, so a save reloaded mid-march resumes at the
    same point regardless of frame rate.
 */
-public sealed class MovementSystem(WorldState world)
+public sealed class MovementSystem(WorldState world, ProvinceGraph? land = null)
 {
     private readonly Dictionary<int, MovementOrder> _orders = [];
 
@@ -85,8 +86,14 @@ public sealed class MovementSystem(WorldState world)
                 }
 
                 budget -= remaining;
+                int from = army.Province;
                 order.CompleteStep();
                 army.Province = order.Path[order.Step];
+
+                if (CrossedWater(from, army.Province))
+                {
+                    army.LandedOnTick = world.Clock.Tick;
+                }
             }
 
             if (order.IsComplete)
@@ -105,6 +112,28 @@ public sealed class MovementSystem(WorldState world)
     {
         Terrain terrain = world.Provinces[destination].Terrain;
         float speed = MathF.Max(army.Speed, 0.1f);
-        return MovementCost.HoursFor(terrain, terrain.IsWater()) / speed;
+        bool bySea = terrain.IsWater() || CrossedWater(army.Province, destination);
+        return MovementCost.HoursFor(terrain, bySea) / speed;
+    }
+
+    /* Two provinces joined only through the sea graph require embarking. Without
+       the land graph to compare against, every step is treated as overland,
+       which is the safe reading rather than a silent free landing. */
+    private bool CrossedWater(int from, int to)
+    {
+        if (land is null || from == to)
+        {
+            return false;
+        }
+
+        foreach (ushort neighbour in land.NeighboursOf(from))
+        {
+            if (neighbour == to)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

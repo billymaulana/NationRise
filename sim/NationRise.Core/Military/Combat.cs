@@ -23,6 +23,20 @@ public sealed class Combat(DeterministicRandom random)
        logarithmic term makes doom-stacking actively worse than splitting. */
     public const int MaxStackWithoutPenalty = 10;
 
+    /* An opposed landing fights at half strength until the beachhead is two days
+       old. This is what stops an archipelago from being crossed as freely as a
+       plain, and it is why sea control is worth paying for. */
+    public const float LandingPenalty = 0.5f;
+    public const int LandingWindowTicks = 48;
+
+    /* The unset sentinel is checked before subtracting: long.MaxValue minus
+       long.MinValue wraps negative and would penalise every army that never
+       went near a boat. */
+    public static float LandingModifier(Army army, long tick) =>
+        army.LandedOnTick != long.MinValue && tick - army.LandedOnTick < LandingWindowTicks
+            ? LandingPenalty
+            : 1f;
+
     public static float StackPenalty(int size) => size <= MaxStackWithoutPenalty
         ? 1f
         : MathF.Max(0.30f, 1f - 0.56f * MathF.Log(size / (float)MaxStackWithoutPenalty));
@@ -47,7 +61,7 @@ public sealed class Combat(DeterministicRandom random)
         return total * terrainModifier * StackPenalty(army.Count);
     }
 
-    public CombatResult ResolveHour(Army attacker, Army defender, Terrain terrain)
+    public CombatResult ResolveHour(Army attacker, Army defender, Terrain terrain, long tick = long.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(attacker);
         ArgumentNullException.ThrowIfNull(defender);
@@ -75,7 +89,7 @@ public sealed class Combat(DeterministicRandom random)
             toAttacker += StrengthOf(defender, armour, terrain, attacking: false);
         }
 
-        toDefender = Roll(toDefender);
+        toDefender = Roll(toDefender * LandingModifier(attacker, tick));
         toAttacker = Roll(toAttacker);
 
         Distribute(defender, toDefender);

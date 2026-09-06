@@ -8,6 +8,11 @@ public sealed class Army
     public required ushort Nation { get; init; }
     public int Province { get; set; }
 
+    /* Set when the stack steps ashore across a sea link. A beachhead has no
+       depth to fall back on, which is what makes an opposed landing a gamble
+       rather than a free flanking move. */
+    public long LandedOnTick { get; set; } = long.MinValue;
+
     public IReadOnlyList<UnitInstance> Units => _units;
     public int Count => _units.Count;
     public bool IsDestroyed => _units.Count == 0;

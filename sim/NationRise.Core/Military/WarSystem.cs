@@ -81,7 +81,7 @@ public sealed class WarSystem(WorldState world, Relations relations, Determinist
                 ushort controller = world.Provinces.Controller[province];
                 (Army attacker, Army defender) = b.Nation == controller ? (a, b) : (b, a);
 
-                CombatResult result = _combat.ResolveHour(attacker, defender, terrain);
+                CombatResult result = _combat.ResolveHour(attacker, defender, terrain, world.Clock.Tick);
 
                 _reports.Add(new BattleReport(
                     province, attacker.Nation, defender.Nation,
