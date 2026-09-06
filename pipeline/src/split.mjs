@@ -41,11 +41,17 @@ export function splitPolygon(feature, parts, seed) {
       continue
     }
     if (!clipped) continue
-    clipped.properties = { ...feature.properties }
+    /* Area must be recomputed: each piece inherits the parent's properties,
+       and a stale area would misreport every province created by a split. */
+    clipped.properties = { ...feature.properties, area_km2: areaKm2(clipped) }
     pieces.push(clipped)
   }
 
   return pieces.length >= 2 ? pieces : [feature]
+}
+
+function areaKm2(feature) {
+  return Math.round(turf.area(feature) / 1e6)
 }
 
 function scatter(feature, count) {

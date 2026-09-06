@@ -4,6 +4,7 @@ import { useRelativePaths, OUT } from './paths.mjs'
 useRelativePaths()
 
 const SEED = 20260906
+const EXCLUDED = new Set(['ATA', 'ATF', 'BVT', 'HMD', 'SGS'])
 
 const allocation = JSON.parse(await readFile(`${OUT}/allocation.json`, 'utf8'))
 const targetOf = new Map(allocation.nations.map((n) => [n.tag, n.provinces]))
@@ -12,6 +13,7 @@ const fc = JSON.parse(await readFile(`${OUT}/provinces-merged.json`, 'utf8'))
 const byNation = new Map()
 for (const f of fc.features) {
   const tag = f.properties.adm0_a3
+  if (EXCLUDED.has(tag)) continue
   if (!byNation.has(tag)) byNation.set(tag, [])
   byNation.get(tag).push(f)
 }

@@ -6,6 +6,10 @@ useRelativePaths()
 
 const SEED = 20260906
 
+/* Antarctica has no population, no cities and no reason to be fought over;
+   including it would add hundreds of provinces nobody visits. */
+const EXCLUDED = new Set(['ATA', 'ATF', 'BVT', 'HMD', 'SGS'])
+
 const allocation = JSON.parse(await readFile(`${OUT}/allocation.json`, 'utf8'))
 const targetOf = new Map(allocation.nations.map((n) => [n.tag, n.provinces]))
 
@@ -18,7 +22,7 @@ const features = JSON.parse(Buffer.from(loaded['out.json']).toString()).features
 const byNation = new Map()
 for (const f of features) {
   const tag = f.properties.adm0_a3
-  if (!tag || tag === 'ATA') continue
+  if (!tag || EXCLUDED.has(tag)) continue
   if (!byNation.has(tag)) byNation.set(tag, [])
   byNation.get(tag).push(f)
 }
