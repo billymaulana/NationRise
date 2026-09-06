@@ -286,11 +286,14 @@ public sealed partial class SimulationHost : Node
                     continue;
                 }
 
-                string attacker = _world.Nations.Tag[nation];
-                string target = _world.Nations.Tag[decision.Subject];
-                LastDecisionExplanation =
-                    $"{attacker} -> {target}: {decision.Explain()}\n" +
-                    $"decisive factor: {decision.Decisive.Name}";
+                LastWar = new WarReport(
+                    Render.NationLabels.NameOf(_world.Nations.Tag[nation].Trim()),
+                    Render.NationLabels.NameOf(_world.Nations.Tag[decision.Subject].Trim()),
+                    decision.Decisive.Name,
+                    decision.Explain(),
+                    _world.Clock.Date.Day);
+
+                LastDecisionExplanation = $"{LastWar.Attacker} -> {LastWar.Defender}: {LastWar.Reasoning}";
             }
         }
     }
@@ -341,6 +344,8 @@ public sealed partial class SimulationHost : Node
     }
 
     public string LastDecisionExplanation { get; private set; } = string.Empty;
+
+    public WarReport? LastWar { get; private set; }
 
     public void SetSpeed(GameSpeed speed) => Speed = speed;
 

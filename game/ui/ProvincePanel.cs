@@ -3,52 +3,57 @@ using NationRise.Core.World;
 
 namespace NationRise.Game.Ui;
 
-/* Right-click a province and this says what is there. Nothing here reaches
-   into the province arrays: everything arrives through ProvinceQuery, so the
-   panel cannot accidentally become a second source of truth. */
+/*
+   Right-click a province and this says what is there, in the same fielded
+   language as the rest of the interface. Nothing here reaches into the province
+   arrays: everything arrives through the host, so the panel cannot accidentally
+   become a second source of truth.
+*/
 public sealed partial class ProvincePanel : PanelContainer
 {
-    private Label? _label;
+    private const int Width = 300;
+    private const int Margin = 14;
+    private const int FieldHeight = 21;
+
+    private static readonly Color Panel = new(0.129f, 0.161f, 0.196f, 0.96f);
+    private static readonly Color Rule = new(0.30f, 0.34f, 0.38f, 0.55f);
+    private static readonly Color Inset = new(0.078f, 0.098f, 0.122f, 0.92f);
+    private static readonly Color Label = new(0.62f, 0.66f, 0.70f);
+    private static readonly Color Value = new(0.94f, 0.95f, 0.96f);
+    private static readonly Color Accent = new(1.00f, 0.72f, 0.34f);
+    private static readonly Color Warning = new(0.90f, 0.45f, 0.38f);
+
     private Bridge.SimulationHost? _host;
     private Render.ProvincePicker? _picker;
     private bool _connected;
 
+    private int _province = -1;
+    private string _name = string.Empty;
+    private ProvinceSummary _summary;
+
     public override void _Ready()
     {
-        _label = new Label { Text = string.Empty };
-        _label.AddThemeFontSizeOverride("font_size", 15);
-
         var background = new StyleBoxFlat
         {
-            BgColor = new Color(0.07f, 0.09f, 0.12f, 0.92f),
-            BorderColor = new Color(0.45f, 0.42f, 0.36f, 0.8f),
+            BgColor = Panel,
+            BorderColor = new Color(0.36f, 0.40f, 0.44f, 0.85f),
         };
         background.SetBorderWidthAll(1);
-        background.SetCornerRadiusAll(3);
         AddThemeStyleboxOverride("panel", background);
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 12);
-        margin.AddThemeConstantOverride("margin_right", 12);
-        margin.AddThemeConstantOverride("margin_top", 8);
-        margin.AddThemeConstantOverride("margin_bottom", 8);
-        margin.AddChild(_label);
-        AddChild(margin);
-
-        /* Absolute placement rather than a right anchor: a PanelContainer sizes
-           itself to its text, so anchoring its left edge to the right of the
-           screen pushes it off-screen entirely. */
         SetAnchorsPreset(LayoutPreset.TopLeft);
-        CustomMinimumSize = new Vector2(300, 0);
-        /* Below the resource bar, which spans the top edge. */
-        Position = new Vector2(980, 68);
+        CustomMinimumSize = new Vector2(Width, 196);
+        MouseFilter = MouseFilterEnum.Ignore;
         Visible = false;
     }
 
     public override void _Process(double delta)
     {
+        Position = new Vector2(GetViewportRect().Size.X - Width - 24f, 68f);
+
         if (_connected)
         {
+            QueueRedraw();
             return;
         }
 
@@ -69,38 +74,96 @@ public sealed partial class ProvincePanel : PanelContainer
         /* Resolved here as well as in _Process: a right-click can arrive on the
            same frame the panel is created, before _Process has ever run. */
         _host ??= GetNodeOrNull<Bridge.SimulationHost>("/root/Main/SimulationHost");
-
-        if (_host is null || _label is null)
+        if (_host is null)
         {
-            GD.Print($"ProvincePanel: host={_host is not null}, label={_label is not null}");
             return;
         }
 
-        ProvinceSummary summary;
         try
         {
-            summary = _host.Describe(province);
+            _summary = _host.Describe(province);
         }
-        catch (InvalidOperationException error)
+        catch (InvalidOperationException)
         {
-            GD.Print($"ProvincePanel: {error.Message}");
             /* Names are attached a frame after the map builds; a click that
                early simply finds nothing to show. */
             return;
         }
 
-        string name = _host.NameOfProvince(province);
-
-        _label.Text =
-            $"{(name.Length > 0 ? name : $"Province {province}")}\n" +
-            $"{summary.ControllerName}{(summary.IsOccupied ? $" (occupied from {summary.OwnerName})" : string.Empty)}\n" +
-            $"{summary.Terrain}{(summary.IsCity ? $"  ·  city, population {summary.Population:0}" : string.Empty)}\n" +
-            $"Morale {summary.Morale:P0}\n" +
-            $"{(summary.IsCity ? $"Produces {summary.Resource}\n" : string.Empty)}" +
-            $"{(summary.IsContested ? "Contested ground\n" : string.Empty)}" +
-            $"Supply: {_host.SupplyAt(province)}{(_host.IsBlockaded(province) ? "  ·  BLOCKADED" : string.Empty)}\n" +
-            $"Neighbours: {summary.LandNeighbours} land, {summary.SeaNeighbours} sea";
-
+        _province = province;
+        _name = _host.NameOfProvince(province);
         Visible = true;
+        QueueRedraw();
     }
+
+    public override void _Draw()
+    {
+        if (_host is null || _province < 0)
+        {
+            return;
+        }
+
+        DrawText(_name.Length > 0 ? _name : $"Province {_province}", Margin, 26f, 16, Value, UiAssets.Bold);
+
+        string holder = _summary.IsOccupied
+            ? $"{_summary.ControllerName}, taken from {_summary.OwnerName}"
+            : _summary.ControllerName;
+
+        DrawText(holder.ToUpperInvariant(), Margin, 43f, 10, _summary.IsOccupied ? Warning : Label);
+        DrawLine(new Vector2(Margin, 52f), new Vector2(Width - Margin, 52f), Rule, 1f);
+
+        float y = 62f;
+        float half = (Width - Margin * 2f - 8f) / 2f;
+
+        Field(Margin, y, half, "TERRAIN", _summary.Terrain.ToString(), Value);
+        Field(Margin + half + 8f, y, half, "MORALE", $"{_summary.Morale:P0}",
+            _summary.Morale < 0.40f ? Warning : Value);
+        y += FieldHeight + 6f;
+
+        if (_summary.IsCity)
+        {
+            Field(Margin, y, half, "POPULATION", $"{_summary.Population:0}", Accent);
+            Field(Margin + half + 8f, y, half, "PRODUCES", _summary.Resource.ToString(), Accent);
+            y += FieldHeight + 6f;
+        }
+
+        bool blockaded = _host.IsBlockaded(_province);
+        Field(Margin, y, half, "SUPPLY", _host.SupplyAt(_province).ToString(),
+            _host.SupplyAt(_province) == NationRise.Core.Military.SupplyStatus.Supplied ? Value : Warning);
+        Field(Margin + half + 8f, y, half, "SEA", blockaded ? "Blockaded" : "Open",
+            blockaded ? Warning : Value);
+        y += FieldHeight + 6f;
+
+        Field(Margin, y, half, "LAND LINKS", _summary.LandNeighbours.ToString(), Value);
+        Field(Margin + half + 8f, y, half, "SEA LINKS", _summary.SeaNeighbours.ToString(), Value);
+        y += FieldHeight + 10f;
+
+        if (_summary.IsContested)
+        {
+            DrawText("CONTESTED GROUND", Margin, y, 11, Warning, UiAssets.SemiBold);
+            y += 14f;
+        }
+
+        if (Size.Y < y)
+        {
+            CustomMinimumSize = new Vector2(Width, y + 8f);
+        }
+    }
+
+    private void Field(float x, float y, float width, string label, string value, Color tone)
+    {
+        var box = new Rect2(x, y, width, FieldHeight);
+        DrawRect(box, Inset);
+        DrawRect(box, Rule, filled: false, width: 1f);
+
+        DrawText(label, x + 7f, y + FieldHeight - 6f, 9, Label);
+
+        Font font = UiAssets.SemiBold ?? ThemeDB.FallbackFont;
+        float measured = font.GetStringSize(value, HorizontalAlignment.Left, -1, 12).X;
+        DrawText(value, x + width - measured - 7f, y + FieldHeight - 6f, 12, tone, UiAssets.SemiBold);
+    }
+
+    private void DrawText(string text, float x, float y, int size, Color colour, Font? font = null) =>
+        DrawString(font ?? UiAssets.Regular ?? ThemeDB.FallbackFont,
+            new Vector2(x, y), text, HorizontalAlignment.Left, -1, size, colour);
 }

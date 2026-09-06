@@ -107,7 +107,7 @@ public sealed partial class NationLabels : Node3D
 
             var label = new Label3D
             {
-                Text = Spaced(name),
+                Text = Spaced(Shortened(name)),
                 FontSize = 34,
                 /* Faint on purpose. A country name is context, not content:
                    it should be legible when looked for and invisible when the
@@ -131,7 +131,11 @@ public sealed partial class NationLabels : Node3D
             /* Held on screen at a constant size: a country name is a caption,
                and a caption that grows with the terrain stops being readable
                the moment the player zooms in. */
-            float basePixelSize = 0.0042f * Mathf.Clamp(Mathf.Sqrt(counts[nation]) * 0.28f, 0.85f, 2.6f);
+            /* Barely varied by size. An earlier version scaled the type up to
+               2.6x for the largest countries, which at world zoom put "Democratic
+               Republic of the Congo" across a third of the screen. A country's
+               name should be findable, not dominant. */
+            float basePixelSize = 0.0042f * Mathf.Clamp(Mathf.Sqrt(counts[nation]) * 0.20f, 0.80f, 1.30f);
             label.PixelSize = basePixelSize;
 
             AddChild(label);
@@ -140,6 +144,16 @@ public sealed partial class NationLabels : Node3D
 
         GD.Print($"Nation labels: {_labels.Count}.");
     }
+
+    /* Shared so the panels can name the nation the same way the map does; the
+       lookup lives here because this is where the table is read. */
+    public static string NameOf(string tag)
+    {
+        _shared ??= ReadNames();
+        return _shared.TryGetValue(tag, out string? name) ? name : tag;
+    }
+
+    private static Dictionary<string, string>? _shared;
 
     private static Dictionary<string, string> ReadNames()
     {
@@ -152,6 +166,29 @@ public sealed partial class NationLabels : Node3D
 
         return JsonSerializer.Deserialize<Dictionary<string, string>>(file.GetAsText()) ?? [];
     }
+
+    /* Official names run long enough to cross a continent. The map has room
+       for what a person calls the place, and the rest belongs in a panel. */
+    private static string Shortened(string name) => name switch
+    {
+        "Democratic Republic of the Congo" => "DR Congo",
+        "United States of America" => "United States",
+        "People's Republic of China" => "China",
+        "Republic of Korea" => "South Korea",
+        "Democratic People's Republic of Korea" => "North Korea",
+        "United Republic of Tanzania" => "Tanzania",
+        "Republic of Serbia" => "Serbia",
+        "Czech Republic" => "Czechia",
+        "United Kingdom" => "Britain",
+        "Central African Republic" => "C. African Rep.",
+        "Bosnia and Herzegovina" => "Bosnia",
+        "Papua New Guinea" => "Papua",
+        "Dominican Republic" => "Dominican Rep.",
+        "Equatorial Guinea" => "Eq. Guinea",
+        "Solomon Islands" => "Solomons",
+        "United Arab Emirates" => "UAE",
+        _ => name,
+    };
 
     /* Label3D has no letter-spacing, and tracked-out capitals are most of what
        makes atlas typography read as a map rather than as a caption. Thin
