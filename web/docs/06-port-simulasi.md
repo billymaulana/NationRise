@@ -178,28 +178,47 @@ di sini:
 
 | Subsistem | Status |
 |---|---|
-| Determinism, pembulatan, float32 | Selesai, bit-exact dengan C# |
-| Time, World, `ProvinceQuery` | Selesai |
-| Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan |
-| Economy | Selesai seluruhnya |
-| Diplomacy (`Relation`) | Selesai |
+| Determinism, pembulatan, float32 | Selesai |
+| Time | Selesai |
+| World, `ProvinceQuery`, `Snapshot` | Selesai |
+| Data (`WorldFile`) | Selesai |
+| Economy (11 berkas) | Selesai |
+| Diplomacy | Selesai |
 | Buildings | Selesai |
 | Research | Selesai |
 | Victory | Selesai |
-| Military: unit, `Combat`, `Conquest`, `BattleEstimate` | Selesai |
-| Military: `Movement`, `Pathfinder`, `MovementCost`, `ArmyPolicy` | Selesai |
-| Military: `SupplySystem`, `Blockade` | Selesai |
-| Military: `Stance`, `WarSystem`, `Mobilisation` | Sedang dikerjakan |
-| `World/Snapshot` | Sedang dikerjakan |
-| Ai, Persistence | Belum |
+| Military (17 berkas) | Selesai |
+| Ai (5 berkas) | Selesai |
+| Persistence | Selesai |
 
-**413 uji simulasi hijau** per commit `f0d2b47`.
+**Port selesai. 509 uji hijau.**
 
-Jumlahnya tidak dibandingkan lurus dengan 323 uji C#: sebagian uji `[Theory]`
-mekar jadi beberapa kasus di Vitest, sebagian uji C# menguji sistem yang belum
-diport, dan sebagian besar subsistem mendapat blok pemaku tambahan yang
-nilainya diambil dengan menjalankan implementasi rujukan. Yang dijadikan ukuran
-adalah cakupan per subsistem di tabel ini, bukan angka totalnya.
+`ProvinceRef` tidak punya berkas sendiri: ia diport sebagai kelas di dalam
+`ProvinceStore.ts`, karena keduanya saling merujuk dan memisahkannya hanya
+menambah satu siklus impor tanpa manfaat.
+
+Jumlah ujinya tidak dibandingkan lurus dengan 323 uji C#. Sebagian uji
+`[Theory]` mekar jadi beberapa kasus di Vitest; sebagian besar subsistem
+mendapat blok pemaku tambahan yang nilainya diambil dengan menjalankan
+implementasi rujukan, karena uji C#-nya relasional (`InRange`, `>`) dan tetap
+hijau meski satu operasi dihitung dengan presisi yang salah.
+
+### Yang tidak terbukti uji, dicatat apa adanya
+
+Setiap port melaporkan nilai yang diyakini benar tetapi tidak dijaga uji mana
+pun. Yang terbesar:
+
+- **`MathF.Log` = `f32(Math.log(x))`** terverifikasi empiris untuk setiap ukuran
+  tumpukan yang dijalankan uji, tetapi .NET memakai `logf` runtime C yang tidak
+  menjanjikan pembulatan benar. Kesetaraan yang teramati, bukan yang dijamin.
+- **`divF32(cap, 0.1f)` versus `mulF32(cap, 10)` di `Stance`** menghasilkan bit
+  yang sama untuk kedua nilai cap yang ada, sehingga tidak ada uji yang bisa
+  membedakannya. Pembagian dipakai karena setia pada sumbernya.
+- Cabang-cabang yang tidak terjangkau data katalog saat ini: unit udara, unit
+  berkecepatan nol, pasukan kosong.
+
+Catatan itu ada supaya siapa pun yang kelak menambah unit udara atau sikap baru
+tahu di mana lapisannya tipis.
 
 ### Uji anggaran waktu tidak bisa mengukur mikro-drift
 

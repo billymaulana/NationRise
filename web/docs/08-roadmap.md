@@ -37,12 +37,20 @@ Uji dulu, selalu (W16).
 Subsistem yang tidak saling bergantung boleh dikerjakan paralel — Economy dan
 Research tidak menyentuh Military.
 
-**Selesai bila:** 323 uji hijau di Vitest dengan nilai harapan identik, di
-lingkungan `node` tanpa DOM.
+**SELESAI.** Seluruh subsistem terport, 509 uji hijau di lingkungan `node`
+tanpa DOM. Rincian per subsistem dan daftar hal yang tidak terbukti uji ada di
+`06-port-simulasi.md` §Kemajuan.
 
-Kemajuan per subsistem ada di `06-port-simulasi.md` §Kemajuan.
+## Fase 3 — peta terlihat — SEBAGIAN SELESAI
 
-## Fase 3 — peta terlihat
+Sudah berdiri: tekstur id provinsi, pewarnaan medan menurut lintang, batas
+provinsi dan negara dari shader, batimetri, label kota, geser dan zoom menuju
+kursor, pemilihan provinsi. Jembatan Worker hidup dan HUD menampilkan angka dari
+simulasi sungguhan.
+
+Belum: citra satelit sebagai dasar, kemiringan kamera 2,5D, penanda unit.
+
+## Fase 3 — rencana asli
 
 - Probe anggaran tekstur di M1 8 GB **lebih dulu**, sebelum memilih resolusi
   citra. Baca `../../docs/planning/45-perf-probe-result.md` sebagai preseden.
