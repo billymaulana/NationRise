@@ -28,27 +28,65 @@ headroom 5–30×. Cukup, dan itu sebelum dipindah ke Worker.
 
 ## Urutan port
 
-Diurutkan menurut ketergantungan: yang tidak bergantung pada apa pun lebih
-dulu, sehingga setiap tahap bisa diuji sebelum tahap berikutnya dimulai.
+**Koreksi.** Urutan pertama dokumen ini mengurutkan port per subsistem, dengan
+`Economy` sebelum `Buildings` dan `Military`. Itu salah, dan baru ketahuan saat
+`Upkeep` ternyata mengimpor keduanya.
 
-| # | Subsistem | Berkas | Baris | Bergantung pada |
-|---|---|---|---|---|
-| 1 | `Determinism` | 1 | 71 | — |
-| 2 | `Time` | 3 | 92 | — |
-| 3 | `World` | 7 | 382 | Determinism |
-| 4 | `Data` | 1 | 142 | World |
-| 5 | `Economy` | 11 | 1.368 | World, Time |
-| 6 | `Buildings` | 3 | 268 | Economy |
-| 7 | `Research` | 2 | 239 | Economy, Time |
-| 8 | `Military` | 17 | 2.475 | World, Economy, Determinism |
-| 9 | `Diplomacy` | 1 | 76 | World |
-| 10 | `Victory` | 1 | 222 | World, Military |
-| 11 | `Ai` | 5 | 527 | semuanya |
-| 12 | `Persistence` | 1 | 286 | semuanya |
+Ketergantungan antar subsistem di sumbernya **melingkar**:
 
-`Military` adalah yang terbesar dan paling berisiko: 17 berkas, termasuk
-`Pathfinder`, `Combat`, `SupplySystem`, dan `WarSystem`. Ia diport paling akhir
-di antara subsistem inti karena paling banyak bergantung pada yang lain.
+```
+Economy   -> Buildings, Military, Diplomacy, World
+Buildings -> Economy, World
+Military  -> Buildings, Economy, Research, Data, Diplomacy, World, Time
+Research  -> Buildings, Economy, Time, World
+```
+
+Itu sah di C#, karena namespace bukan unit kompilasi dan seluruh proyek
+dikompilasi bersama. Tetapi artinya **port tidak bisa dikerjakan satu subsistem
+sekaligus**. Urutannya harus disusun per berkas.
+
+### Berkas daun
+
+Berkas tanpa satu pun `using NationRise.Core.*` lintas subsistem, jadi bisa
+diport kapan saja:
+
+| Berkas | Baris |
+|---|---|
+| `Military/ArmourClass.cs` | 23 |
+| `Military/CombatModifiers.cs` | 28 |
+| `Military/UnitClass.cs` | 41 |
+| `Military/Army.cs` | 45 |
+| `Military/UnitCatalogue.cs` | 116 |
+| `Buildings/BuildingType.cs` | 56 |
+| `Economy/ProvinceStatus.cs` | 22 |
+| `Economy/Resource.cs` | 40 |
+| `Economy/Stockpile.cs` | 52 |
+| `Economy/TradePolicy.cs` | 196 |
+| `Economy/WorldMarket.cs` | 368 |
+| `Diplomacy/Relation.cs` | 76 |
+
+### Urutan yang benar
+
+1. `Determinism`, `Time` — tanpa ketergantungan
+2. `World` (struktur inti), `Data` — butuh Determinism dan Time
+3. `Economy` bagian dasar: `Resource`, `ProvinceStatus`, `Stockpile`,
+   `Production`, `Manpower`, `EconomyTick` — hanya butuh `World`
+4. Daun `Military` dan `Buildings` — membuka `Upkeep`
+5. `Economy/Upkeep` — butuh `UnitClass`, `Army`, `CityBuildings`, `BuildingType`
+6. `Economy/ShortageSystem` (butuh `Military`), `MoraleSystem` (butuh
+   `Buildings`, `Diplomacy`)
+7. `Economy/WorldMarket`, `TradePolicy` — daun, tetapi merujuk tipe
+   `UpkeepSystem`
+8. Sisa `Military`, `Research`, `Victory`, `Ai`, `Persistence`
+
+### Cara memeriksanya sendiri
+
+```sh
+cd sim/NationRise.Core
+grep -hoE "using NationRise\.Core\.[A-Za-z]+" <Subsistem>/*.cs | sort -u
+```
+
+Berkas tanpa keluaran dari perintah itu adalah daun.
 
 ## Metode: uji dulu (W16)
 
@@ -81,6 +119,7 @@ tanpa menimbulkan galat:
 | `struct` disalin nilai | objek disalin rujukan | Mutasi tak sengaja merambat; bekukan atau salin eksplisit |
 | `List<T>.Sort` stabil sejak .NET 5 | `Array.sort` stabil sejak ES2019 | Aman, tetapi pembanding harus total — jangan pernah kembalikan 0 untuk elemen berbeda |
 | `MathF.Round` / `Math.Round` membulatkan setengah **ke genap** | `Math.round` membulatkan setengah **menjauhi nol** | 2,5 menjadi 2 di C# dan 3 di JavaScript. Pakai `roundHalfToEven` dari `src/sim/determinism/rounding.ts` |
+| `float` adalah 32-bit; setiap operasi dibulatkan ke 32 bit | `number` selalu double 64-bit | Hasil meleset satu bilangan bulat setelah `Math.floor`. Pakai `f32`, `mulF32`, `addF32` dari `src/sim/determinism/float32.ts` |
 
 Pembulatan titik tengah adalah perangkap yang paling sunyi. `MathF.Round(2.5)`
 mengembalikan `2` di .NET, sedangkan `Math.round(2.5)` mengembalikan `3`.
@@ -97,6 +136,27 @@ MathF.Round(2.6) = 3      MathF.Round(-2.5) = -2
 Setiap pembulatan di port wajib lewat `roundHalfToEven`, dan setiap pembagian
 bilangan bulat lewat `intDiv`; keduanya ada di
 `src/sim/determinism/rounding.ts`.
+
+### Presisi float 32-bit
+
+Perangkap kedua yang sama sunyinya. `float` di C# dibulatkan ke 32 bit setelah
+**setiap** operasi; `number` di JavaScript selalu double 64-bit.
+
+Ini terbukti, bukan diduga. Keluaran harian Rare Resources pada populasi 5 dan
+morale 70 persen adalah **729** di implementasi rujukan. Dihitung dengan double,
+hasilnya **728**. Angka 729 diambil dari Conflict of Nations sungguhan, jadi
+yang meleset adalah portnya.
+
+Bentuk kegagalannya perlu dipahami tepat, karena tidak intuitif. Morale
+tersimpan di `Float32Array`, sehingga membacanya sudah memberi
+`0.699999988079071` — dan nilai itu **benar**. Yang salah adalah melanjutkannya
+dengan aritmetika double: hasilnya `728,9999914`, lalu `Math.floor`
+menjadikannya 728. Jadi bukan penyimpanannya yang perlu diperbaiki, melainkan
+setiap operasi sesudahnya harus dibulatkan ke 32 bit juga, mengikuti urutan
+evaluasi C# yang sama.
+
+Setiap perhitungan yang di C# memakai `float` wajib memakai pembungkus di
+`src/sim/determinism/float32.ts`, satu per operasi.
 
 `Math.trunc` versus `Math.floor` layak disebut dua kali. C# membulatkan
 pembagian bilangan bulat ke arah nol; `Math.floor` membulatkan ke bawah.
@@ -125,8 +185,9 @@ di sini:
 | Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan | 11 |
 | Economy (`Resource`) | Selesai | 10 |
 | World (`ProvinceQuery`) | Selesai | 9 |
+| Aritmetika float32 | Selesai, diverifikasi terhadap nilai CoN | 2 |
+| Economy (dasar + `EconomyTick` + `Manpower`) | Selesai | 24 |
 | Sisanya | Belum | — |
-| **Jumlah** | | **79** dari 323 |
 
 Uji `Data` menjalankan pembacanya terhadap `world.bin` sungguhan dan memeriksa
 angka yang sudah dikunci riset peta: 54 provinsi Indonesia, 12 kota, poin
