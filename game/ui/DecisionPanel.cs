@@ -28,7 +28,7 @@ public sealed partial class DecisionPanel : PanelContainer
         AddChild(margin);
 
         SetAnchorsPreset(LayoutPreset.TopLeft);
-        Position = new Vector2(16, 320);
+        Position = new Vector2(16, 560);
         Visible = false;
     }
 
