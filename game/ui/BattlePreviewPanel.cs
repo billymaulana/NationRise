@@ -41,8 +41,8 @@ public sealed partial class BattlePreviewPanel : PanelContainer
         /* Monospace so the factor column lines up; an unaligned chain of
            multipliers is exactly as unreadable as no chain at all. */
         _chain = new Label { Text = string.Empty };
-        _chain.AddThemeFontSizeOverride("font_size", 14);
-        _chain.AddThemeFontOverride("font", ThemeDB.FallbackFont);
+        _chain.AddThemeFontSizeOverride("font_size", 13);
+        _chain.AddThemeFontOverride("font", UiAssets.Mono ?? ThemeDB.FallbackFont);
 
         _verdict = new Label { Text = string.Empty, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _verdict.AddThemeFontSizeOverride("font_size", 14);
