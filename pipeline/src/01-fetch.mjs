@@ -20,6 +20,16 @@ const SOURCES = [
     url: 'https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries.zip',
   },
   {
+    name: 'geography regions',
+    file: 'ne_10m_geography_regions_polys.zip',
+    url: 'https://naciscdn.org/naturalearth/10m/physical/ne_10m_geography_regions_polys.zip',
+  },
+  {
+    name: 'rivers and lakes',
+    file: 'ne_10m_rivers_lake_centerlines.zip',
+    url: 'https://naciscdn.org/naturalearth/10m/physical/ne_10m_rivers_lake_centerlines.zip',
+  },
+  {
     name: 'populated places',
     file: 'ne_10m_populated_places.zip',
     url: 'https://naciscdn.org/naturalearth/10m/cultural/ne_10m_populated_places.zip',

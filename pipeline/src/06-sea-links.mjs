@@ -8,6 +8,7 @@ useRelativePaths()
    within a short crossing of each other; the threshold is deliberately small
    so fleets still matter for anything further. */
 const MAX_CROSSING_KM = 250
+const BOUNDARY_SAMPLES = 200
 
 const fc = JSON.parse(await readFile(`${OUT}/provinces.json`, 'utf8'))
 const land = JSON.parse(await readFile(`${OUT}/adjacency.json`, 'utf8'))
@@ -33,9 +34,11 @@ for (let a = 0; a < features.length; a++) {
     if (ba[1] - bb[3] > degPad || bb[1] - ba[3] > degPad) continue
 
     checked++
-    const km = turf.distance(turf.point(centres[a]), turf.point(centres[b]), { units: 'kilometers' })
-    if (km > MAX_CROSSING_KM * 2.5) continue
 
+    /* Centre-to-centre distance is not a usable filter: Sakhalin sits 223 km
+       from the mainland but its centre is 1,154 km away, so any such shortcut
+       silently strands elongated provinces. The bounding-box test above is
+       the only prefilter that stays correct. */
     const gap = minimumGapKm(features[a], features[b])
     if (gap <= MAX_CROSSING_KM) {
       seaNeighbours[a].add(b)
@@ -45,8 +48,8 @@ for (let a = 0; a < features.length; a++) {
 }
 
 function minimumGapKm(a, b) {
-  const pointsA = sampleBoundary(a, 60)
-  const pointsB = sampleBoundary(b, 60)
+  const pointsA = sampleBoundary(a, BOUNDARY_SAMPLES)
+  const pointsB = sampleBoundary(b, BOUNDARY_SAMPLES)
   let best = Infinity
 
   for (const pa of pointsA) {
