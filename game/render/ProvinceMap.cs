@@ -53,6 +53,10 @@ public sealed partial class ProvinceMap : Node3D
 
     public Vector3[] ProvinceCentres => _centres;
 
+    /* How far each province reaches from its centre, in map units. The minimap
+       stamps provinces as discs and needs a size for each one. */
+    public float[] ProvinceRadii => _radius;
+
     private readonly record struct SharedEdge(Vector3 A, Vector3 B, int First, int Second);
 
     public void ApplyOwners(ushort[] owner, byte[] terrain, bool[] isCity, int highlightNation)

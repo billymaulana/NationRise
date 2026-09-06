@@ -918,6 +918,16 @@ public sealed partial class SimulationHost : Node
     public long StockOf(int nation, GameResource resource) =>
         _stockpile?.Get(nation, resource) ?? 0;
 
+    /* Manpower refills from the population pool rather than from provincial
+       output, so asking the economy for it would report a flat zero. */
+    public long DailyIncomeOf(int nation, GameResource resource) => resource switch
+    {
+        GameResource.Manpower => _manpower is null || _stockpile is null
+            ? 0
+            : _manpower.DailyRegenOf(nation, _stockpile),
+        _ => _economy?.DailyIncomeOf(nation, resource) ?? 0,
+    };
+
     private void PaintMap(int highlightNation)
     {
         if (_world is null)

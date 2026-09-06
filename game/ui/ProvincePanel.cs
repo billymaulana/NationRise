@@ -40,7 +40,8 @@ public sealed partial class ProvincePanel : PanelContainer
            screen pushes it off-screen entirely. */
         SetAnchorsPreset(LayoutPreset.TopLeft);
         CustomMinimumSize = new Vector2(300, 0);
-        Position = new Vector2(980, 40);
+        /* Below the resource bar, which spans the top edge. */
+        Position = new Vector2(980, 68);
         Visible = false;
     }
 

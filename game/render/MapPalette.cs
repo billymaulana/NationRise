@@ -12,6 +12,7 @@ namespace NationRise.Game.Render;
 public static class MapPalette
 {
     public static readonly Color DeepOcean = new(0.031f, 0.086f, 0.141f);
+    public static readonly Color MinimapSea = new(0.055f, 0.129f, 0.192f);
     public static readonly Color ShelfWater = new(0.098f, 0.278f, 0.353f);
 
     /* The turquoise band and its foam line are the loudest thing on the

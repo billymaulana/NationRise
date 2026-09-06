@@ -57,6 +57,21 @@ public class IncomeTests
         Assert.True(state.Provinces.Count > 0);
     }
 
+    [Fact]
+    public void ManpowerRegenerationIsReportedByThePoolThatOwnsIt()
+    {
+        var (state, stock, _, nation) = Setup();
+        var pool = new ManpowerPool(state);
+
+        long predicted = pool.DailyRegenOf(nation, stock);
+        long before = stock.Get(nation, Resource.Manpower);
+
+        pool.RunDay(stock);
+
+        Assert.Equal(predicted, stock.Get(nation, Resource.Manpower) - before);
+        Assert.True(predicted > 0, "A nation starting with no reserves should be refilling.");
+    }
+
     /* Every nation in the fixture starts with ground, so the landless case is
        made rather than found: conquest is the situation this has to be right
        for. */

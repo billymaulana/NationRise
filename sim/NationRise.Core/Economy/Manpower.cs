@@ -75,17 +75,28 @@ public sealed class ManpowerPool(WorldState world)
         return population * 1000f * ManpowerInfo.FractionFor(_level[nation]);
     }
 
+    public const float DailyRefillFraction = 0.02f;
+
+    /* What RunDay would add, without adding it. Manpower does not come from the
+       economy tick like every other resource, so a display that asks the
+       economy for it reports a flat zero and quietly tells the player their
+       reserves are static. */
+    public long DailyRegenOf(int nation, Stockpile stockpile)
+    {
+        ArgumentNullException.ThrowIfNull(stockpile);
+
+        long missing = (long)CapacityOf(nation) - stockpile.Get(nation, Resource.Manpower);
+        return missing > 0 ? (long)(missing * DailyRefillFraction) + 1 : 0;
+    }
+
     public void RunDay(Stockpile stockpile)
     {
         for (int nation = 0; nation < world.Nations.Count; nation++)
         {
-            float capacity = CapacityOf(nation);
-            long held = stockpile.Get(nation, Resource.Manpower);
-            long missing = (long)capacity - held;
-
-            if (missing > 0)
+            long gain = DailyRegenOf(nation, stockpile);
+            if (gain > 0)
             {
-                stockpile.Add(nation, Resource.Manpower, (long)(missing * 0.02f) + 1);
+                stockpile.Add(nation, Resource.Manpower, gain);
             }
         }
     }
