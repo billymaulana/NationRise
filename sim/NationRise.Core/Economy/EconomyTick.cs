@@ -20,6 +20,44 @@ public sealed class EconomyTick(WorldState world, Stockpile stockpile)
 
     public ProvinceStatus StatusOf(int province) => _status[province];
 
+    /*
+       What RunDay would add for one nation, without adding it. The heads-up
+       display needs the rate more than the balance: a stockpile of 8,000 says
+       nothing until you know whether it is climbing or draining.
+    */
+    public long DailyIncomeOf(int nation, Resource resource)
+    {
+        var provinces = world.Provinces;
+        long total = 0;
+
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            if (provinces.Controller[i] != nation)
+            {
+                continue;
+            }
+
+            float population = provinces.Population[i];
+            float morale = provinces.Morale[i];
+
+            ProvinceStatus status = provinces.IsCity[i] ? _status[i] : ProvinceStatus.PlainProvince;
+            float ceiling = ProvinceStatusInfo.CeilingOf(status);
+
+            if (resource == Resource.Money)
+            {
+                total += (long)(Production.DailyOutput(population, morale, Resource.Money) * ceiling);
+                continue;
+            }
+
+            if (provinces.IsCity[i] && _provinceResource[i] == resource && ResourceInfo.IsCityGood(resource))
+            {
+                total += (long)(Production.DailyOutput(population, morale, resource) * ceiling);
+            }
+        }
+
+        return total;
+    }
+
     public void RunDay()
     {
         var provinces = world.Provinces;

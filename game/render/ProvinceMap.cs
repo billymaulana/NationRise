@@ -487,9 +487,9 @@ public sealed partial class ProvinceMap : Node3D
            another dataset and another million points; two soft rings around
            every landmass buy the same read, which is that the sea has a shelf
            and the shelf is where the ports are. */
-        AddRibbon(coast, MapPalette.OpenShelf, 0.155f, CoastHazeHeight - 0.002f, "shelf");
-        AddRibbon(coast, MapPalette.CoastalHaze, 0.058f, CoastHazeHeight, "coast haze");
-        AddRibbon(coast, MapPalette.Coastline, 0.013f, CoastHeight, "coastline");
+        AddRibbon(coast, MapPalette.OpenShelf, 0.190f, CoastHazeHeight - 0.003f, "shelf", joints: true);
+        AddRibbon(coast, MapPalette.CoastalHaze, 0.068f, CoastHazeHeight, "shallows", joints: true);
+        AddRibbon(coast, MapPalette.Coastline, 0.011f, CoastHeight, "foam");
 
         GD.Print($"Borders: {coast.Count / 2} coast, {shared.Count} shared edges.");
     }
@@ -546,8 +546,8 @@ public sealed partial class ProvinceMap : Node3D
         _frontier = new MeshInstance3D { Name = "Frontiers" };
         AddChild(_frontier);
 
-        AddRibbonTo(_frontier, neutral, MapPalette.NationBorder, 0.020f, FrontierHeight);
-        AddRibbonTo(_frontier, mine, MapPalette.PlayerBorder, 0.036f, FrontierHeight + 0.002f);
+        AddRibbonTo(_frontier, neutral, MapPalette.NationBorder, 0.034f, FrontierHeight, joints: true);
+        AddRibbonTo(_frontier, mine, MapPalette.PlayerBorder, 0.050f, FrontierHeight + 0.002f, joints: true);
     }
 
     private void AddLines(List<Vector3> points, Color colour, float height)
@@ -577,11 +577,17 @@ public sealed partial class ProvinceMap : Node3D
         });
     }
 
-    private void AddRibbon(List<Vector3> segments, Color colour, float width, float height, string name)
+    private void AddRibbon(
+        List<Vector3> segments,
+        Color colour,
+        float width,
+        float height,
+        string name,
+        bool joints = false)
     {
         var holder = new MeshInstance3D { Name = name };
         AddChild(holder);
-        AddRibbonTo(holder, segments, colour, width, height);
+        AddRibbonTo(holder, segments, colour, width, height, joints);
     }
 
     /*
@@ -589,12 +595,26 @@ public sealed partial class ProvinceMap : Node3D
        coast has to be real geometry. Each segment becomes a quad extruded
        sideways in the map plane, which is flat, so no billboarding is needed.
     */
+    private static void AppendJoint(List<Vector3> vertices, Vector3 at, float half)
+    {
+        Vector3 x = new(half, 0f, 0f);
+        Vector3 z = new(0f, 0f, half);
+
+        vertices.Add(at - x - z);
+        vertices.Add(at + x - z);
+        vertices.Add(at + x + z);
+        vertices.Add(at - x - z);
+        vertices.Add(at + x + z);
+        vertices.Add(at - x + z);
+    }
+
     private static void AddRibbonTo(
         MeshInstance3D holder,
         List<Vector3> segments,
         Color colour,
         float width,
-        float height)
+        float height,
+        bool joints = false)
     {
         if (segments.Count < 2)
         {
@@ -635,6 +655,15 @@ public sealed partial class ProvinceMap : Node3D
             vertices.Add(a0);
             vertices.Add(b1);
             vertices.Add(a1);
+
+            /* A square cap at each end stands in for a round join. Without it
+               every change of direction leaves a notch, and a wide band around
+               a coastline is nothing but changes of direction. */
+            if (joints)
+            {
+                AppendJoint(vertices, a, half);
+                AppendJoint(vertices, b, half);
+            }
         }
 
         if (vertices.Count == 0)
