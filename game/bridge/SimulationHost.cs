@@ -7,6 +7,7 @@ using NationRise.Core.Ai;
 using NationRise.Core.Diplomacy;
 using NationRise.Core.Military;
 using System.Linq;
+using NationRise.Core.Persistence;
 using NationRise.Core.Time;
 using NationRise.Core.World;
 
@@ -24,6 +25,8 @@ public sealed partial class SimulationHost : Node
     [Export] public ulong Seed { get; set; } = 20260906;
     [Export] public double MinutesPerGameDay { get; set; } = 5.0;
     [Export] public bool Paused { get; set; }
+
+    public GameSpeed Speed { get; private set; } = GameSpeed.Normal;
 
     private WorldState? _world;
     private WorldData? _data;
@@ -267,6 +270,88 @@ public sealed partial class SimulationHost : Node
 
     public string LastDecisionExplanation { get; private set; } = string.Empty;
 
+    public void SetSpeed(GameSpeed speed) => Speed = speed;
+
+    public void FasterSpeed() => Speed = GameSpeedInfo.Faster(Speed);
+
+    public void SlowerSpeed() => Speed = GameSpeedInfo.Slower(Speed);
+
+    public void TogglePause() =>
+        Speed = Speed == GameSpeed.Paused ? GameSpeed.Normal : GameSpeed.Paused;
+
+    private const string SavePath = "user://save-1.nrsv";
+
+    public bool SaveGame()
+    {
+        if (_world is null || _stockpile is null || _relations is null)
+        {
+            return false;
+        }
+
+        using var file = GodotFile.Open(SavePath, GodotFile.ModeFlags.Write);
+        if (file is null)
+        {
+            GD.PushError($"Cannot write {SavePath}: {GodotFile.GetOpenError()}");
+            return false;
+        }
+
+        using var buffer = new MemoryStream();
+        int player = _world.Nations.IndexOf("IDN");
+        SaveFile.Write(buffer, SaveState.Capture(_world, _stockpile, _relations, _armies, (ushort)player));
+        file.StoreBuffer(buffer.ToArray());
+
+        GD.Print($"Saved at {_world.Clock.Date} ({buffer.Length} bytes).");
+        return true;
+    }
+
+    public bool LoadGame()
+    {
+        if (_world is null || _stockpile is null || _relations is null)
+        {
+            return false;
+        }
+
+        using var file = GodotFile.Open(SavePath, GodotFile.ModeFlags.Read);
+        if (file is null)
+        {
+            GD.Print("No save to load.");
+            return false;
+        }
+
+        using var buffer = new MemoryStream(file.GetBuffer((long)file.GetLength()));
+
+        try
+        {
+            SaveFile.Read(buffer).RestoreInto(_world, _stockpile, _relations, _armies);
+        }
+        catch (SaveFileException error)
+        {
+            GD.PushError($"Save rejected: {error.Message}");
+            return false;
+        }
+
+        _movement = new MovementSystem(_world);
+        GD.Print($"Loaded, resuming at {_world.Clock.Date}.");
+        return true;
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true } key)
+        {
+            return;
+        }
+
+        switch (key.Keycode)
+        {
+            case Key.Space: TogglePause(); break;
+            case Key.Equal or Key.Plus: FasterSpeed(); break;
+            case Key.Minus: SlowerSpeed(); break;
+            case Key.F5: SaveGame(); break;
+            case Key.F9: LoadGame(); break;
+        }
+    }
+
     public Archetype ArchetypeOf(int nation) =>
         _brain?.ArchetypeOf(nation) ?? Archetype.Defender;
 
@@ -328,7 +413,17 @@ public sealed partial class SimulationHost : Node
             return;
         }
 
-        double secondsPerTick = MinutesPerGameDay * 60.0 / GameDate.HoursPerDay;
+        /* Export overrides the ladder when set, so a debug scene can run far
+           faster than any speed a player can choose. */
+        double secondsPerTick = MinutesPerGameDay > 0.0 && MinutesPerGameDay < 1.0
+            ? MinutesPerGameDay * 60.0 / GameDate.HoursPerDay
+            : GameSpeedInfo.SecondsPerTick(Speed);
+
+        if (double.IsInfinity(secondsPerTick))
+        {
+            return;
+        }
+
         _accumulator += delta;
 
         while (_accumulator >= secondsPerTick)
