@@ -4,6 +4,13 @@ import type { GameClock } from '~/sim/time/GameClock'
 import type { NationStore } from '~/sim/world/NationStore'
 import type { ProvinceStore } from '~/sim/world/ProvinceStore'
 
+/* Kota bernilai populasinya yang dibulatkan, provinsi biasa bernilai satu.
+   Dinyatakan sekali di sini karena penghitung kemenangan menilai provinsi yang
+   sama; dua salinan aturan ini akan menyimpang tanpa satu uji pun menyadarinya. */
+export function victoryPointValueOf(provinces: ProvinceStore, province: number): number {
+  return provinces.isCity[province] !== 0 ? roundHalfToEven(provinces.population[province]!) : 1
+}
+
 export class WorldState {
   constructor(
     readonly provinces: ProvinceStore,
@@ -18,9 +25,7 @@ export class WorldState {
     for (let i = 0; i < this.provinces.count; i++) {
       if (this.provinces.controller[i] !== nation) continue
 
-      points += this.provinces.isCity[i] !== 0
-        ? roundHalfToEven(this.provinces.population[i]!)
-        : 1
+      points += victoryPointValueOf(this.provinces, i)
     }
 
     return points
