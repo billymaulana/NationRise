@@ -179,23 +179,40 @@ di sini:
 | Subsistem | Status |
 |---|---|
 | Determinism, pembulatan, float32 | Selesai, bit-exact dengan C# |
-| Time | Selesai |
-| World, `ProvinceQuery` | Selesai |
+| Time, World, `ProvinceQuery` | Selesai |
 | Data (`WorldFile`) | Selesai, byte-compatible pada `world.bin` sungguhan |
-| Economy: `Resource`, `ProvinceStatus`, `Stockpile`, `Production` | Selesai |
-| Economy: `EconomyTick`, `Manpower` | Selesai |
-| Economy: `WorldMarket` | Selesai |
-| Military: daun (`UnitClass`, `Army`, `UnitCatalogue`, dll) | Selesai |
-| Buildings: `BuildingType`, `BuildingCost`, `CityBuildings` | Selesai |
-| Economy: `Upkeep`, `ShortageSystem`, `MoraleSystem`, `TradePolicy` | Belum |
-| Research, Victory, Ai, Persistence, sisa Military | Belum |
+| Economy | Selesai seluruhnya |
+| Diplomacy (`Relation`) | Selesai |
+| Buildings | Selesai |
+| Research | Selesai |
+| Victory | Selesai |
+| Military: unit, `Combat`, `Conquest`, `BattleEstimate` | Selesai |
+| Military: `Movement`, `Pathfinder`, `MovementCost`, `ArmyPolicy` | Selesai |
+| Military: `SupplySystem`, `Blockade` | Selesai |
+| Military: `Stance`, `WarSystem`, `Mobilisation` | Sedang dikerjakan |
+| `World/Snapshot` | Sedang dikerjakan |
+| Ai, Persistence | Belum |
 
-**207 uji simulasi hijau** (216 termasuk antarmuka).
+**413 uji simulasi hijau** per commit `f0d2b47`.
 
 Jumlahnya tidak dibandingkan lurus dengan 323 uji C#: sebagian uji `[Theory]`
-mekar jadi beberapa kasus di Vitest, dan sebagian uji C# menguji sistem yang
-belum diport sehingga belum bisa dibawa. Yang dijadikan ukuran adalah cakupan
-per subsistem di tabel ini, bukan angka totalnya.
+mekar jadi beberapa kasus di Vitest, sebagian uji C# menguji sistem yang belum
+diport, dan sebagian besar subsistem mendapat blok pemaku tambahan yang
+nilainya diambil dengan menjalankan implementasi rujukan. Yang dijadikan ukuran
+adalah cakupan per subsistem di tabel ini, bukan angka totalnya.
+
+### Uji anggaran waktu tidak bisa mengukur mikro-drift
+
+Tolok ukur PRNG semula memakai anggaran 250 ms. Angka itu cukup saat rangkaian
+ujinya kecil, lalu mulai merah secara acak begitu berkas uji bertambah menjadi
+tiga puluh lima: vitest menjalankan berkasnya paralel, dan pada mesin yang
+sibuk bahkan lantai waktunya naik dua sampai tiga kali. Tiga port berbeda
+melaporkannya sebagai kegagalan yang membingungkan.
+
+Anggarannya sekarang 1.200 ms. Yang dijaga adalah regresi ordo besar —
+mengganti generator dengan sesuatu yang sepuluh kali lebih lambat tetap
+tertangkap — dan itu satu-satunya hal yang bisa dijamin uji waktu-dinding di
+runner paralel.
 
 Uji `Data` menjalankan pembacanya terhadap `world.bin` sungguhan dan memeriksa
 angka yang sudah dikunci riset peta: 54 provinsi Indonesia, 12 kota, poin

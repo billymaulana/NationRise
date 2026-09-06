@@ -139,6 +139,27 @@ dengan `colorSpaceConversion: 'none'`, dan teksturnya diberi `NoColorSpace`
 serta penyaringan `NearestFilter` — interpolasi apa pun akan mencampur dua id
 menjadi id ketiga yang tidak ada.
 
+### Satu loop frame, bukan dua
+
+Label kota awalnya ditempatkan lewat rantai `requestAnimationFrame` sendiri,
+terpisah dari loop yang menggambar peta. Rantai itu berhenti diam-diam setelah
+frame pertama, dan bentuk kegagalannya sulit dikenali: **canvas menahan frame
+terakhirnya**, sehingga peta tetap terlihat benar meski loopnya sudah mati.
+Tidak ada galat, tidak ada layar kosong — hanya sebagian antarmuka yang berhenti
+diperbarui, dan setiap pengukuran membaca angka yang membeku alih-alih angka
+yang salah.
+
+Sekarang `MapView` memanggil satu callback `onFrame` per frame yang digambar,
+dan lapisan di atasnya menumpang di situ. Satu loop berarti tidak ada rantai
+yang bisa berhenti sendirian.
+
+### Pusat provinsi dihitung saat build
+
+Versi pertama menghitungnya di peramban dengan menyapu delapan juta piksel di
+utas utama. Antarmukanya membeku beberapa detik sebelum peta muncul, cukup lama
+untuk membuat pendengar peristiwa terpasang setelah pemain sempat mencoba
+berinteraksi. Datanya statis, jadi tempatnya di build: keluarannya 32 KB JSON.
+
 ### Anggaran
 
 | | |
@@ -146,6 +167,7 @@ menjadi id ketiga yang tidak ada.
 | Tekstur id | 4096 x 2048, **183 KB** sebagai PNG |
 | Salinan CPU untuk pemilihan | 8,4 juta entri Uint16, 16,8 MB |
 | Tabel pencarian | 2048 x 2 RGBA, 16 KB |
+| Pusat provinsi | 32 KB JSON, dihitung saat build |
 
 PNG-nya kecil karena isinya bidang datar. Salinan CPU dipakai untuk pemilihan
 supaya tidak perlu menarik piksel kembali dari GPU; pembacaan balik memaksa
