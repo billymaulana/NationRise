@@ -23,12 +23,22 @@ public sealed class MoraleSystem(WorldState world, Relations relations, CityBuil
 
     public const float WarPenaltyPerEnemy = 0.02f;
     public const float MaxWarPenalty = 0.25f;
-    public const float ShortagePenalty = 0.50f;
+
+    /*
+       The shared shortage ramp. Attached, morale, combat, movement and
+       production all read the same days-short figure, so a player shown one
+       number is not contradicted by the next. Left unset there is no shortage
+       penalty at all, the same way an unattached supply system leaves combat
+       without supply modifiers.
+    */
+    public ShortageSystem? Shortage { get; set; }
 
     public void RunDay(Stockpile stockpile)
     {
+        ArgumentNullException.ThrowIfNull(stockpile);
+
         var warPenalty = new float[world.Nations.Count];
-        var shortage = new bool[world.Nations.Count];
+        var shortagePenalty = new float[world.Nations.Count];
 
         for (int nation = 0; nation < world.Nations.Count; nation++)
         {
@@ -37,10 +47,9 @@ public sealed class MoraleSystem(WorldState world, Relations relations, CityBuil
 
             /* Running out of food or money hits morale everywhere at once,
                which is what turns a supply failure into a political problem
-               rather than a rounding error. */
-            shortage[nation] =
-                stockpile.IsShort(nation, Resource.Food) ||
-                stockpile.IsShort(nation, Resource.Money);
+               rather than a rounding error. It arrives on a ramp so the
+               problem is visible for days before it is decisive. */
+            shortagePenalty[nation] = Shortage?.MoralePenaltyOf(nation) ?? 0f;
         }
 
         for (int province = 0; province < world.Provinces.Count; province++)
@@ -54,10 +63,7 @@ public sealed class MoraleSystem(WorldState world, Relations relations, CityBuil
             float target = TargetFor(province, nation);
             target -= warPenalty[nation];
 
-            if (shortage[nation])
-            {
-                target -= ShortagePenalty;
-            }
+            target -= shortagePenalty[nation];
 
             target += buildings.LevelOf(province, BuildingType.UndergroundBunkers) * 0.02f;
             target = Math.Clamp(target, 0.05f, 1.05f);
