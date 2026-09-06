@@ -47,6 +47,10 @@ public static class UnitRecipes
             "artillery_1", BuildingType.ArmyBase, 1),
         new("naval_infantry", Cost(400, 800, 850, 0, 1500), 24,
             "naval_infantry", BuildingType.NavalBase, 2),
+        new("corvette", Cost(1500, 0, 400, 600, 1250), 24,
+            "corvette", BuildingType.NavalBase, 2),
+        new("destroyer", Cost(0, 2500, 650, 900, 1950), 28,
+            "destroyer", BuildingType.NavalBase, 3),
     ];
 
     public static UnitRecipe For(string unitClassId) =>

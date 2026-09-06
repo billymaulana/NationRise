@@ -78,9 +78,36 @@ public static class UnitCatalogue
         Defence = Ratings(infantry: 5.0f, armour: 3.0f, vehicle: 5.0f, helicopter: 0.8f, fixedWing: 0.4f),
     };
 
+    public static readonly UnitClass Corvette = new()
+    {
+        Id = "corvette",
+        Name = "Corvette",
+        Domain = Domain.Sea,
+        Armour = ArmourClass.SurfaceShip,
+        MaxHitPoints = 30f,
+        Speed = 2.20f,
+        Echelon = 1,
+        Attack = Ratings(ship: 6.0f, submarine: 4.0f, infantry: 2.0f, building: 1.0f),
+        Defence = Ratings(ship: 6.0f, submarine: 3.0f, fixedWing: 2.5f, missile: 1.5f),
+    };
+
+    public static readonly UnitClass Destroyer = new()
+    {
+        Id = "destroyer",
+        Name = "Destroyer",
+        Domain = Domain.Sea,
+        Armour = ArmourClass.SurfaceShip,
+        MaxHitPoints = 45f,
+        Speed = 2.60f,
+        Echelon = 1,
+        Attack = Ratings(ship: 9.0f, submarine: 7.0f, infantry: 3.0f, building: 2.0f),
+        Defence = Ratings(ship: 9.0f, submarine: 6.0f, fixedWing: 4.0f, missile: 3.0f),
+    };
+
     public static readonly IReadOnlyList<UnitClass> All =
     [
         MotorizedInfantry, MechanizedInfantry, MainBattleTank, TowedArtillery, NavalInfantry,
+        Corvette, Destroyer,
     ];
 
     public static UnitClass ById(string id) =>
