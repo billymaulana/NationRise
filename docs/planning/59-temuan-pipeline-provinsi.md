@@ -112,3 +112,60 @@ Syaratnya pemecahan harus **deterministik** dan memakai seed tetap, agar peta ya
 **Target 3.400 tetap berlaku, tetapi alasannya berubah.** Klaim bahwa target lebih besar berarti kerja lebih sedikit **tidak benar** — data ternyata butuh penggabungan besar-besaran di Eropa dan pemecahan besar-besaran di negara berpenduduk jarang, apa pun targetnya.
 
 Yang tetap benar dari D128 adalah alasan proporsinya: dengan 3.400 provinsi Indonesia menempati 1,58 persen dunia, sama persis dengan Conflict of Nations.
+
+---
+
+## 7. Trilemma alokasi provinsi
+
+Setelah pendekatan berbobot kepadatan dijalankan terhadap data nyata, muncul tiga syarat yang **tidak bisa dipenuhi bersamaan**.
+
+| Syarat | Asal |
+|---|---|
+| **A. Indonesia 54 provinsi** | Riset peta, sudah divalidasi terhadap geografi nyata |
+| **B. Total 3.400 provinsi** | D128, dipilih demi paritas proporsi dengan Conflict of Nations |
+| **C. Distribusi yang masuk akal** | Tidak ada negara mendapat ratusan provinsi tundra kosong |
+
+Ketiga kombinasi yang mungkin, diukur dari data:
+
+| Susunan | Indonesia | Total | Rusia | Jerman | Masalahnya |
+|---|---|---|---|---|---|
+| Bobot luas 0,55, batas 90 | **54** | **2.043** | 90 | 15 | Total jauh di bawah 3.400 |
+| Bobot luas 0,85, batas 200 | **54** | **3.438** | **200** | **12** | Rusia 200 provinsi sebagian besar tundra; Jerman 12 |
+| Skala dinaikkan ke 3.400 | **90** | 3.400 | 90 | 25 | Indonesia jadi 90, membatalkan riset peta |
+
+**Barisan tengah adalah yang paling merusak.** Ia memenuhi angka total dan angka Indonesia sekaligus, tetapi hanya dengan membuat bobot hampir murni luas, sehingga Siberia dan Kanada utara memakan seperempat peta dunia sementara Jepang mendapat 15 provinsi dan Korea 5.
+
+---
+
+## 8. Kenapa "paritas dengan Conflict of Nations" ternyata bukan tujuan yang tepat
+
+D128 memilih 3.400 agar Indonesia menempati 1,58 persen dunia, sama seperti di Conflict of Nations.
+
+Pengukuran ini menunjukkan **angka itu bukan patokan objektif**. Conflict of Nations memberi:
+
+| Negara | Provinsi | Luas | Provinsi per juta km² |
+|---|---|---|---|
+| Jerman | 44 | 358 ribu km² | **123** |
+| Indonesia | 53 | 1,9 juta km² | **28** |
+| Amerika Serikat | 82 | 9,8 juta km² | **8** |
+
+Jerman mendapat **lima belas kali lebih banyak provinsi per satuan luas** daripada Amerika Serikat. Itu bukan prinsip desain melainkan **konsekuensi dari game yang berpusat di Eropa dan Amerika Utara**.
+
+Meniru proporsi itu berarti mewarisi kecondongannya. Untuk game yang pemainnya bermain sebagai Indonesia, itu tujuan yang salah.
+
+---
+
+## 9. Rekomendasi
+
+**Lepaskan syarat B, yaitu target 3.400.**
+
+| Yang dipertahankan | Alasan |
+|---|---|
+| Indonesia 54 provinsi | Sudah divalidasi terhadap geografi nyata, termasuk Maluku yang butuh empat |
+| Distribusi masuk akal | Provinsi tundra kosong tidak menghasilkan keputusan menarik |
+
+Hasilnya sekitar **2.000 sampai 2.400 provinsi** dengan bobot luas 0,55 dan batas atas 90.
+
+Konsekuensi yang harus diterima dengan sadar: Indonesia menempati sekitar **2,3 persen dunia**, bukan 1,58 persen. Permainan sebagai Indonesia menjadi sedikit lebih mudah, dan ambang kemenangan harus dihitung ulang dari total poin dunia yang baru.
+
+Karena ambang sudah ditetapkan **sebagai persentase, bukan angka tetap** (D128), perubahan ini tidak merusak keseimbangan — ia hanya mengubah angka yang ditampilkan.
