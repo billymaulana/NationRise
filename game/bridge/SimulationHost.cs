@@ -49,6 +49,7 @@ public sealed partial class SimulationHost : Node
     private UpkeepSystem? _upkeep;
     private ShortageSystem? _shortage;
     private ArmyPolicy? _armyPolicy;
+    private int _unitsOrdered;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -550,6 +551,7 @@ public sealed partial class SimulationHost : Node
             if (BeginBestAffordable(province))
             {
                 held[nation]++;
+                _unitsOrdered++;
             }
         }
     }
@@ -1113,6 +1115,12 @@ public sealed partial class SimulationHost : Node
             {
                 _economy?.RunDay();
                 _upkeep?.RunDay(_armies);
+
+                if (_world.Clock.Date.Day % 10 == 0)
+                {
+                    GD.Print($"Day {_world.Clock.Date.Day}: {_armies.Count} stacks, "
+                        + $"{_unitsOrdered} units ordered so far.");
+                }
                 _shortage?.RunDay(_stockpile, _upkeep);
                 if (_manpower is not null && _stockpile is not null)
                 {

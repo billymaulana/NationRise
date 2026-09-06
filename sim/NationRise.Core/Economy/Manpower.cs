@@ -17,11 +17,26 @@ public enum MobilisationLevel : byte
 */
 public static class ManpowerInfo
 {
+    /*
+       The share of a nation's people it can have under arms.
+
+       These were an order of magnitude too small. A unit costs 850 manpower to
+       raise, and at the old peacetime share Indonesia's ceiling came to 1,440 —
+       not quite two formations, for a country of ninety-six population. No
+       nation in the world could keep a standing army, and across a measured
+       ninety-day run not one unit was mobilised anywhere.
+
+       Conflict of Nations pays Indonesia about 1,464 manpower a day at the same
+       size, so a ceiling near that figure was really a day's income mistaken
+       for a lifetime's. At these shares a peacetime Indonesia can hold about
+       seventeen formations and a fully mobilised one about forty-five, which is
+       the scale the reference fields.
+    */
     public static float FractionFor(MobilisationLevel level) => level switch
     {
-        MobilisationLevel.Peace => 0.015f,
-        MobilisationLevel.Partial => 0.05f,
-        _ => 0.10f,
+        MobilisationLevel.Peace => 0.15f,
+        MobilisationLevel.Partial => 0.25f,
+        _ => 0.40f,
     };
 
     public static float MoneyPenalty(MobilisationLevel level) => level switch

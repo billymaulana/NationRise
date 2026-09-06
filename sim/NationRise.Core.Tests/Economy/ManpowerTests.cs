@@ -28,7 +28,12 @@ public class ManpowerTests
         float total = pool.CapacityOf(idn);
 
         Assert.True(peace > 0f);
-        Assert.True(total > peace * 5f);
+
+        /* Full mobilisation is a little under three times the peacetime pool.
+           It used to be nearly seven, which read as a country that keeps almost
+           nobody under arms until war comes; at that peacetime share no nation
+           could hold even two formations and none was ever raised anywhere. */
+        Assert.InRange(total / peace, 2.0f, 4.0f);
     }
 
     [Fact]

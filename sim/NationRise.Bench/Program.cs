@@ -48,11 +48,13 @@ public static class Program
         private ResearchQueue _research = null!;
         private Mobilisation _mobilisation = null!;
         private ArmyPolicy _policy = null!;
+        private ManpowerPool _manpower = null!;
         private int _wanted;
         private int _started;
         private string _lastRefusal = string.Empty;
         private readonly Dictionary<string, int> _refusals = [];
         private readonly Dictionary<string, int> _buildRefusals = [];
+        private readonly Dictionary<string, int> _watchedRefusals = [];
         private Relations _relations = null!;
         private MoraleSystem _morale = null!;
         private WorldMarket _market = null!;
@@ -106,6 +108,7 @@ public static class Program
             _mobilisation = new Mobilisation(_world, _stock, _buildings, _research);
             _relations = new Relations(_world.Nations.Count);
             _policy = new ArmyPolicy(_world, _relations);
+            _manpower = new ManpowerPool(_world);
             _morale = new MoraleSystem(_world, _relations, _buildings);
             _market = new WorldMarket(_stock);
             _upkeep = new UpkeepSystem(_world, _stock, _buildings);
@@ -171,6 +174,7 @@ public static class Program
             }
 
             _economy.RunDay();
+            _manpower.RunDay(_stock);
             _upkeep.RunDay(_armies);
             _morale.RunDay(_stock);
             _market.RunDay();
@@ -221,6 +225,7 @@ public static class Program
 
                 _wanted++;
                 string why = string.Empty;
+                bool watched = nation == _world.Nations.IndexOf("IDN");
 
                 for (int i = UnitRecipes.All.Count - 1; i >= 0; i--)
                 {
@@ -238,6 +243,11 @@ public static class Program
                 {
                     _lastRefusal = why;
                     _refusals[why] = _refusals.GetValueOrDefault(why) + 1;
+
+                    if (watched)
+                    {
+                        _watchedRefusals[why] = _watchedRefusals.GetValueOrDefault(why) + 1;
+                    }
                 }
             }
         }
@@ -498,6 +508,11 @@ public static class Program
                 Console.WriteLine($"  cities producing {made,-14} {cities}");
             }
 
+            foreach ((string reason, int count) in _watchedRefusals.OrderByDescending(r => r.Value).Take(5))
+            {
+                Console.WriteLine($"  IDN refused {count,7}  {reason}");
+            }
+
             int idn = _world.Nations.IndexOf("IDN");
             Console.WriteLine($"IDN completed research: {_research.CompletedFor(idn).Count}");
             Console.WriteLine($"IDN has motorized_1: {_research.HasCompleted(idn, "motorized_1")}");
@@ -513,6 +528,19 @@ public static class Program
             }
 
             Console.WriteLine($"IDN cities with an army base: {bases}");
+
+            float population = 0f;
+            for (int i = 0; i < _world.Provinces.Count; i++)
+            {
+                if (_world.Provinces.Controller[i] == idn)
+                {
+                    population += _world.Provinces.Population[i];
+                }
+            }
+
+            ManpowerPool pool = _manpower;
+            Console.WriteLine($"IDN population {population:0}, manpower capacity {pool.CapacityOf(idn):0}, "
+                + $"held {_stock.Get(idn, Resource.Manpower)}, one infantry costs 850");
             Console.WriteLine($"world money total: {TotalOf(Resource.Money):N0}");
             Console.WriteLine($"world food total:  {TotalOf(Resource.Food):N0}");
         }
