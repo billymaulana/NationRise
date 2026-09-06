@@ -1,0 +1,34 @@
+# Arsitektur
+
+> Sumber: plan riset Nation Rise, sesi 2026-09-03 sampai 2026-09-04, bagian 12 dan 18.7. Dokumen ini bagian dari `docs/planning/`; indeks dan aturan kerja ada di `README.md`. Nomor "bagian N" yang dirujuk di dalam teks mengacu ke penomoran plan asli; petanya ada di README.
+
+## 12. Arsitektur (kerangka; stack mengikuti rekomendasi bagian 9 sampai Billy memutuskan lain)
+
+Stack (keputusan sementara D13, dikonfirmasi ulang sesi 4 setelah riset netral `19-research-engine-stack.md`): Vue 3.5 + Vite 8 + TypeScript; three.js r185 WebGLRenderer untuk peta dan unit 3D instanced; Vue + UnoCSS untuk semua panel; Web Worker + bitecs + Comlink untuk simulasi; idb + fflate untuk save; PWA dulu, Tauri v2 opsional. Cadangan renderer: PixiJS 8 + sprite 8 arah. Alternatif engine tersimpan: Godot 4.7 + C#.
+
+**Syarat arsitektur "siap-Rust" (D22), tidak boleh ditunda:** (1) simulasi adalah modul murni tanpa DOM dengan state SoA typed arrays di Web Worker dan protokol pesan eksplisit (`tick`, `command`, `snapshot`, `query`), sehingga dapat diuji Vitest secara deterministik dan dapat diganti inti Rust/WASM tanpa menyentuh UI; (2) determinisme dari hari pertama (PRNG seeded xoshiro/mulberry32, integer/fixed-point untuk ekonomi, tanpa `Math.random`, tanpa iterasi objek berurutan tak terjamin); (3) snapshot diff sebagai ArrayBuffer transferable, UI memakai `shallowRef`, update UI dithrottle 5 sampai 10 Hz; (4) rendering province ID render target + lookup texture (satu draw call isi peta), garis batas via shader, satelit KTX2, `InstancedMesh` untuk unit, SDF text hanya untuk label terlihat, `setPixelRatio(min(dpr, 1.5))`; (5) uji di WKWebView (Tauri) sejak minggu pertama, PWA sebagai fallback; (6) era pack JSON dengan skema zod, folder `mods/` via Tauri fs, HMR dev.
+
+**Gerbang keputusan terukur (D22):** setelah peta 2.000 provinsi + 300 stack + simulasi 195 AI berjalan di Tauri, ukur (a) ms per tick di Worker, (b) frame time di WKWebView pada DPR 2, (c) RSS memori. Jika (a) > 500 ms atau (b) > 16 ms secara konsisten setelah optimasi wajar, eskalasi inti simulasi ke Rust/WASM tanpa membuang UI.
+
+Lapisan yang tidak bergantung pada pilihan renderer:
+1. **Data pipeline (build-time, Node scripts):** unduh dan proses Natural Earth, Factbook, REST Countries, World Bank, Wikidata, EIA/GEM/USGS → validasi → keluaran bundle statis: `provinces.topojson`, `province-id-map.png`, `countries.json`, `cities.json`, `resources.json`, `orgs.json`. Dijalankan sekali, hasil dikomit.
+2. **Core simulation (pure TypeScript, deterministik, tanpa DOM):** state dunia, tick per jam game, sistem ekonomi / morale / produksi / riset / gerak / combat / diplomasi / AI. Berjalan di **Web Worker**. Menerima **command** dari UI, mengirim **snapshot atau delta** ke UI dan renderer. Dapat diuji unit dengan Vitest tanpa browser.
+3. **Renderer peta (WebGL):** province ID map + lookup texture untuk warna, layer garis batas di-cache, sprite/instanced unit, label. Hanya membaca snapshot.
+4. **UI (Vue 3 + UnoCSS):** semua panel CoN sebagai komponen HTML; state UI di Pinia; i18n vue-i18n (id, en).
+5. **Persistence:** save slot dan autosave di IndexedDB (dikompresi), export/import file.
+6. **Content data (JSON) per era pack:** `content/shared/` (geometri provinsi, terrain, kota, negara masa kini) dan `content/eras/<era>/` (kepemilikan politik, roster unit, riset, resource, bangunan, events, aturan kalender, persona AI, difficulty preset). Core sim tidak tahu era, hanya membaca definisi. Skema rinci ada di lampiran di bawah dan di `10-research-eras-history.md` bagian 18.7.
+
+Kontrak antar lapisan: UI → sim hanya lewat command terketik (mis. `queueBuilding`, `moveArmy`, `setRelation`); sim → UI hanya lewat snapshot immutable per tick UI (bukan per tick sim). Renderer dan UI tidak pernah memutasi state sim.
+
+## Lampiran: Skema era pack (dari riset sistem era, bagian 18.7)
+
+### 18.7 Skema era pack
+```
+content/shared/   provinces.geojson, adjacency.json, terrain.json, cities.json, sea_zones.json, unit_categories.json
+content/eras/<era>/   era.json (meta, calendar, epochs, disabled_categories, doctrines, alliances), political.json, nations.json (tag, nama, bendera, ibu kota, pemerintahan, doktrin, ai persona, identity_locked), resources.json, units.json, research.json, buildings.json, events.json, rules.json (supply range, morale, musim, WMD), aliases.json, overrides.json, assets/flags/
+content/scenarios/    overlay editor (b) dan sandbox (c)
+mods/eras/            drop-in (d), skema identik
+```
+Lintas era (shared): geometri, adjacency, terrain, sea zones, kunci kota, 8 kategori dan engine combat, formula ekonomi, mesin event dan verba, Chronicle, skema AI. Per era: kepemilikan/core/subject, alias, roster dan `disabled_categories`, daftar resource dan yield per terrain, konten event/journal/kalender/epoch, bobot historis, aliansi awal.
+**Validasi (build dan saat memuat mod):** JSON Schema (Ajv) + `schema_version`; integritas referensi (owner/sovereign ada di nations, doctrine ada di era, category ada di shared, epoch ada di era, scope/efek merujuk tag/provinsi valid); cakupan 100% provinsi punya owner (atau `UNCOLONIZED`); epoch monoton ≤ campaign_days; tiap kategori aktif punya ≥1 unit di epoch pertama; total unit ≤ 24; laporan provinsi `confidence < 0.7` tanpa override.
+**Chronicle** = log append-only `{day, date, actor, kind, payload, text}` (war_declared, province_captured, event_choice, divergence, identity_change, research_done, alliance) → timeline dan peta bertahap di layar akhir. **Nation evolution**: `nation_state.history[]` di save (nama, bendera, ibu kota, pemerintahan, doktrin, day); tag tidak berubah sehingga referensi event tetap valid; bendera custom pemain = SVG dari palet + simbol, disimpan di save.

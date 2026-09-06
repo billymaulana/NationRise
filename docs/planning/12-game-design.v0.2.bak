@@ -1,0 +1,74 @@
+# Game Design Document (GDD v0.2)
+
+> Sumber: plan riset Nation Rise, sesi 2026-09-03 sampai 2026-09-04, bagian 11 + keputusan sementara. Dokumen ini bagian dari `docs/planning/`; indeks dan aturan kerja ada di `README.md`. Nomor "bagian N" yang dirujuk di dalam teks mengacu ke penomoran plan asli; petanya ada di README.
+
+## 11. Desain Game (GDD v0.2)
+
+### 11.1 Pilar desain
+1. **Terbaca dalam 2 detik.** Semua state penting ada di HUD: resource bar dengan laju per jam, VP, badge notifikasi. Tidak ada spreadsheet.
+2. **Ruang keputusan sempit, konsekuensi panjang.** 7 resource, ~9 bangunan, 2 slot riset, 1 antrean konstruksi dan 1 antrean mobilisasi per kota. Durasi dalam jam sampai hari game.
+3. **Dunia yang hidup.** ~195 negara AI mengambil keputusan tiap hari game; koran dan events melaporkannya; AI tidak membedakan pemain dari AI lain.
+4. **Realistis general.** Negara, bendera, ibukota, provinsi, resources, organisasi, doktrin, dan tipe pemerintahan dari data nyata; tanpa simulasi mikro (tanpa pops, tanpa pemilu).
+5. **Ringan.** Peta 60 fps di M1 8 GB; simulasi di Web Worker; aset total di bawah ~150 MB.
+
+### 11.2 Loop inti pemain (per hari game)
+Cek berita dan events → kelola ekonomi (antrean konstruksi dan mobilisasi, pasar) → pilih riset → gerakkan atau serang dengan stack → diplomasi (relasi, koalisi, crisis) → lanjutkan waktu (auto-pause pada kejadian penting).
+
+### 11.3 Sistem (modul) dan sumber aturannya
+| Sistem | Isi | Sumber aturan |
+|---|---|---|
+| **World & Map** | Provinsi (id, owner, pemilik sah, terrain, resource type, apakah kota, VP, morale, populasi, bangunan), negara (id, nama, bendera, ibukota, doktrin, tipe pemerintahan, keanggotaan organisasi, persona AI), graph ketetanggaan darat dan laut, zona laut | Natural Earth + Factbook + Wikidata; struktur CoN |
+| **Economy** | 7 resource (Supplies, Components, Fuel, Electronics, Rare Materials, Manpower, Money; **tanpa Gold**). Kota memproduksi 1 resource utama + Money + Manpower; provinsi non-kota Money + Manpower. Produksi = base × f(morale) × bonus bangunan. Upkeep unit per hari. Tick per jam game | CoN (angka Indonesia Day 1 sebagai kalibrasi) |
+| **Market** | Pengganti order book multiplayer: **pasar dunia** dengan harga per resource dari supply/demand agregat semua negara (rumus clamp ±75% Vic3), beli/jual instan, embargo memutus akses; AI ikut berdagang | Vic3 ringan + CoN harga acuan (Supplies ~7.5, Rare ~13.5 Money) |
+| **Morale** | Per provinsi; faktor: jarak ke ibukota, perang, tetangga musuh, homeland vs occupied, bangunan, overextension; efek ke produksi dan durasi produksi; < ambang → insurgents | CoN wiki (02-research-con-wiki.md, 5.3), Supremacy 1914 |
+| **Buildings** | Army Base, Air Base, Naval Base, Arms Industry, Recruiting Office, Military Hospital, Underground Bunkers, Secret Weapons Lab, + Local Industry / Air Defense / lainnya dari wiki; level 1 sampai 5; biaya dan durasi kalibrasi dari screenshot; gating unit | CoN |
+| **Units & Mobilization** | Roster per doktrin (Western / Eastern / European / Non-aligned), kategori Infantry / Armor / Support / Helicopter / Fighter / Fixed-Wing / Naval / Submarine / Missile; stat HP, attack per armor class, defense, speed, range, view range, terrain modifier; produksi di kota dengan bangunan prasyarat; stack | CoN (tabel biaya bagian 4.2) |
+| **Research** | Grid per kategori, gating hari, 2 slot, biaya Supplies / Rare / Money; level unit; tab Items (Medical Care, Engineering Teams, Crew Training, Heavy Loadouts) | CoN |
+| **Combat** | Tick per jam game; damage per armor class; efisiensi stack; terrain; entrenchment; air patrol; misil dan warhead; healing di kota | CoN wiki (02-research-con-wiki.md, 5.6) |
+| **Movement & War Control** | **Kontrol perang berlapis (D20, sesi 4):** default **L2 Front/Theater** (pemain menggambar front, menaruh army group + komandan, memberi objective Defend / Advance to X / Pincer on Z / Hold line / Fall back / Feint, misi laut per zona Patrol / Blockade / Escort / Raid / Invade / Strike; AI mengeksekusi pergerakan dan memilih stance turunan); **L3 kartu operasi** berprasyarat untuk momen besar (Blokade, Pengepungan, Bombardemen, Pendaratan, Pincer, Feint, Breakthrough, Chokepoint, Penyergapan, Mundur + Bumi Hangus, Raid) dirantai dengan trigger; **override L1** satu klik tanpa penalti (lasso, attack-move, rally point, auto-embark); **toggle L4** delegasikan front sekunder ke AI. Satu planner untuk AI musuh, delegasi, dan saran kartu. Pathfinding A* di graph provinsi, sea lanes, ferry udara. **Mitigasi waktu tempuh (D21):** fast forward sampai tiba + auto-pause saat tiba atau kontak; strategic redeployment rel/udara 3× dengan org turun 90%. Target ≤30 perintah per perang 10 hari | `18-research-war-automation.md` |
+| **Diplomacy** | Relasi: War, Ceasefire, Peace, Right of Way, Shared Map, Shared Intel; koalisi dengan VP target berskala (1900 / 3250 / 4150); trade; embargo. Tambahan: **attitude label** AI, **infamy** + sanksi UN, **crisis 3 fase** sebelum perang, **alliance unity**, **puppet** 3 tipe, **lost territories** | CoN + Vic3 + AoC |
+| **Intelligence** | Agents dengan gaji; Counter-Ops, Intelligence, Corruption, Sabotage; laporan harian; fog of war | CoN |
+| **Victory** | VP per kota/provinsi; ambang solo dan koalisi; ranking di koran; kalah = kehilangan semua kota | CoN |
+| **AI Nation** | Archetype (Expansionist / Defender / Trader / Diplomat / Opportunist) + agenda terlihat + bobot; utility scoring 6 sampai 8 keputusan strategis per beberapa hari; front manager menempatkan stack; sanity floor ekonomi | Riset D |
+| **Difficulty** | 4 preset (Easy / Normal / Hard / Brutal) ±15 sampai 30%, scaling bonus AI sampai hari N, aggressiveness terpisah, override per negara, toggle dunia (revolts, alliance formation, capital capture = annex, nukes), label kesulitan per negara di layar pemilihan | Riset D |
+| **Events & Newspaper** | Log sistem; ranking; artikel AI dari template; ~100 event kondisi dengan hasil eksplisit (v2) | CoN + RP3 ringan |
+| **Time** | Fixed timestep 1 tick = 1 jam game; rekomendasi riset: 1 hari = 5 menit pada 1x (preset 3/5/10), kecepatan Pause/1x/2x/4x/8x, tombol lanjut ke event/hari berikutnya, mulai pause dengan briefing, auto-pause bertingkat (popup / feed / log), autosave harian, save/load slot + ekspor file | 06-research-time-scale.md; keputusan sementara 2026-09-04 |
+| **Scenario Setup** | Pilih negara (deskripsi, doktrin, label kesulitan), difficulty, toggle dunia, randomisasi parsial stat awal | CoN + RP3 + AoC |
+
+### 11.4 Yang sengaja tidak ada (YAGNI)
+Gold/premium, Officers berrarity dan Elite sebagai gacha (unit Elite bisa jadi konten late-game biasa), multiplayer, chat, pops, pemilu, production methods, editor peta, 3D terrain.
+
+### 11.5 Peta data nyata → atribut game
+| Atribut game | Sumber |
+|---|---|
+| Poligon provinsi, nama, kode | Natural Earth Admin-1 (dissolve ke ~2,000) |
+| Negara, ibukota, bendera, latlng, borders | REST Countries + flag-icons |
+| Kota besar dan populasi | Natural Earth Populated Places (+ GeoNames) |
+| Tipe pemerintahan, organisasi, natural resources | Factbook snapshot Jan 2026 + Wikidata |
+| GDP, populasi | World Bank WDI |
+| Resource type provinsi (Supplies / Components / Fuel / Electronics / Rare) | FAO, GDP manufaktur, EIA + GEM, high-tech share, USGS + MRDS → point-in-polygon → normalisasi nasional |
+| Kekuatan militer awal (tier unit awal) | Wikipedia personel + Factbook % GDP × GDP + FAS nuklir |
+| Doktrin | NATO / CSTO / SCO (Wikidata) + pemasok senjata + government type |
+| Deskripsi negara dan saran strategi | Ditulis sendiri dari data (ukuran, pantai, pulau, gunung) |
+
+### 11.6 Pembaruan dari keputusan sementara (2026-09-04)
+
+Keputusan sementara yang diterima Billy (lihat `00-overview.md` bagian 2.0 dan `16-decisions.md`) mengubah atau melengkapi tabel 11.3:
+
+| Sistem | Pembaruan |
+|---|---|
+| **Combat** | **Resolusi pertempuran** model A + C: taktik emergent dari graph provinsi (encirclement via BFS supply, flanking multi-arah, ambush saat intel musuh < 2, siege progress, blockade, naval invasion, diversion via fog, strategic retreat, chokepoint) ditambah 6 stance per stack (Assault, Hold, Ambush, Siege, Screen, Raid) dan 3 sampai 6 komandan per negara dengan trait dan 1 kemampuan aktif. Tanpa layar battle. Wajib ada combat breakdown tooltip. Detail aturan dan angka contoh: `08-research-combat-options.md` bagian 16.1, 16.3, 16.5 |
+| **Supply** (baru) | Tiga status Supplied / Low / Cut Off dari BFS ke kota atau pelabuhan yang terhubung ibukota; range per era (PD1 3, PD2 4, Modern 6); grace 48 tick; penalti bertingkat |
+| **Morale stack** (baru) | Satu angka 0 sampai 100 per stack di samping morale provinsi; damage × (0.55 + 0.45 × morale/100); rout < 25; surrender bila rout tanpa jalur retreat |
+| **Intel** | Level 0 sampai 3 per provinsi musuh; estimasi kekuatan ±50% pada level 2, ±10% pada level 3; AI memakai estimasi yang sama |
+| **Economy** | Engine Money + Manpower + maksimal 5 goods dengan slot top bar tetap; Modern memakai 7 resource CoN penuh; PD2 5 goods ala Call of War; PD1 5 goods ala Supremacy 1914 dengan upkeep substitutable per kategori; pra-industri 3 goods. Definisi per era pack. Detail: `09-research-resource-options.md` |
+| **Market** | Pasar dunia satu layar: harga rumus Vic3 dengan EMA, peserta AI nations plus Rest of World sebagai floor 0.25× dan ceiling 1.75×, akses lokal dipengaruhi blokade dan embargo, fee 5%, kuota harian, anti-Autarky |
+| **Manpower** | Pool = populasi × cap status × tingkat mobilisasi (Peace 1.5% / Partial 5% / Total 10%); regen 2% per hari; dikonsumsi saat mobilisasi dan reinforcement, bukan upkeep harian |
+| **Shortage** | Ramp ala Vic3 (mulai −5%, −3% per hari, cap) per barang: Supplies ke morale dan regen, Fuel ke speed dan attack unit bermesin, Money ke morale dan antrean, Materials ke produksi baru, Rare ke riset |
+| **Time** | Tick 1 jam game tetap di semua era; 1 hari game = 5 menit nyata pada 1x (preset 3/5/10); kecepatan Pause, 1x, 2x, 4x, 8x plus tombol lanjut ke event atau hari berikutnya; mulai pause dengan briefing; auto-pause bertingkat popup / feed / log; durasi CoN tidak dikompres; kalender naratif per era (Modern 1:1, PD1 1:30, PD2 1:36) |
+| **Scenario / Era pack** (baru) | Modern 2026, PD1 1914, PD2 1939, dan custom (modding folder, editor scenario in-game, preset alt-history era pack, sandbox acak). Geometri provinsi tetap, kepemilikan per era; riset epoch gating dengan AOT ×3; event deklaratif dengan bobot historical / free; divergensi dicatat. Detail: `10-research-eras-history.md` |
+| **Player Identity** (baru) | Nama, bendera builder, warna, motto, pemerintahan, pindah ibu kota berbiaya dengan cooldown, national focus, doktrin; khusus pemain; AI identitas tetap kecuali event terdesain |
+| **Chronicle** (baru) | Log append-only per save (day, date, actor, kind, payload, text) dirender sebagai timeline dan peta bertahap di layar akhir |
+| **Legends** (baru) | Jalur B lalu A: fondasi alt-history realistis (national focus, spirits, Heritage Sites nyata dengan bonus realistis), lalu mode Legends toggle default OFF (Archaeological Institute, Expedition, pohon Legacy, 1 unit unik dan 1 Triumph per faksi, Codex dua kolom). Detail: `11-research-legends-layer.md` |
+
+Prinsip 11.4 (YAGNI) tetap berlaku. Semua keputusan sementara boleh ditinjau ulang (aturan kerja nomor 5 di README).
