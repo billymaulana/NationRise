@@ -143,6 +143,58 @@ public class WorldFileTests
         Assert.True(produced[NationRise.Core.Economy.Resource.RareResources] >= 2);
     }
 
+    /* Disputed ground has to survive the pipeline, or the border policy exists
+       only on paper and no nation ever has a claim to press. */
+    [Fact]
+    public void DisputedTerritoriesCarryEveryClaimant()
+    {
+        var state = Load().ToWorldState(1);
+
+        int contested = 0;
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            if (state.Provinces.IsContested(i))
+            {
+                contested++;
+            }
+        }
+
+        Assert.True(contested >= 10, $"Only {contested} contested provinces reached the map.");
+    }
+
+    [Fact]
+    public void EveryProvinceHasAtLeastOneClaimant()
+    {
+        var state = Load().ToWorldState(1);
+
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            Assert.NotEmpty(state.Provinces.ClaimsOf(i).ToArray());
+        }
+    }
+
+    [Fact]
+    public void AContestedProvinceIsClaimedBySomeoneWhoDoesNotHoldIt()
+    {
+        var state = Load().ToWorldState(1);
+
+        for (int i = 0; i < state.Provinces.Count; i++)
+        {
+            if (!state.Provinces.IsContested(i))
+            {
+                continue;
+            }
+
+            ushort holder = state.Provinces.Controller[i];
+            var claims = state.Provinces.ClaimsOf(i).ToArray();
+
+            Assert.Contains(claims, c => c != holder);
+            return;
+        }
+
+        Assert.Fail("No contested province found.");
+    }
+
     [Fact]
     public void WrongMagicIsRejected()
     {

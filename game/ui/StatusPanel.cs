@@ -54,6 +54,8 @@ public sealed partial class StatusPanel : PanelContainer
             $"Research   {_host.ResearchCompleted(_nation),10}\n" +
             $"Units      {_host.UnitsInField(_nation),10}\n" +
             $"Manpower   {_host.StockOf(_nation, GameResource.Manpower),10:N0}\n" +
+            $"Morale     {_host.AverageMoraleOf(_nation),10:P0}\n" +
+            $"Tech price {_host.PriceOf(GameResource.Technology) / 1000.0,10:F1}\n" +
             "\nSpace pause  +/- speed  F5 save  F9 load";
     }
 }

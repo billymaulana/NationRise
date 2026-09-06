@@ -14,6 +14,7 @@ const RESOURCE_INDEX = new Map([
   ['Materials', 4], ['Technology', 5], ['RareResources', 6],
 ])
 
+const disputed = JSON.parse(await readFile('overrides/disputed.json', 'utf8'))
 const fc = JSON.parse(await readFile(`${OUT}/provinces.json`, 'utf8'))
 const land = JSON.parse(await readFile(`${OUT}/adjacency.json`, 'utf8'))
 const sea = JSON.parse(await readFile(`${OUT}/sea-links.json`, 'utf8'))
@@ -40,9 +41,26 @@ features.forEach((f, i) => {
   isCity[i] = f.properties.is_city ? 1 : 0
   resource[i] = RESOURCE_INDEX.get(f.properties.resource ?? 'Money') ?? 0
   claimOffsets[i] = claims.length
-  if (nation !== undefined) claims.push(nation)
+
+  /* Disputed ground carries every claimant, not just whoever holds it. An
+     unfulfilled claim is what gives a nation a reason to march, so the reason
+     lives in the map rather than in a hand-written event. */
+  const claimants = claimantsFor(f, tag)
+  for (const claimant of claimants) {
+    const index = nationIndex.get(claimant)
+    if (index !== undefined) claims.push(index)
+  }
+  if (claims.length === claimOffsets[i] && nation !== undefined) claims.push(nation)
 })
 claimOffsets[count] = claims.length
+
+function claimantsFor(feature, tag) {
+  const byName = disputed.byProvinceName[feature.properties.name ?? '']
+  if (Array.isArray(byName)) return byName
+
+  const byNation = disputed.claims[tag ?? '']
+  return Array.isArray(byNation) ? byNation : []
+}
 
 const parts = []
 const header = Buffer.alloc(16)

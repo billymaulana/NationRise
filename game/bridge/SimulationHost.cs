@@ -38,6 +38,8 @@ public sealed partial class SimulationHost : Node
     private ResearchQueue? _research;
     private Mobilisation? _mobilisation;
     private ManpowerPool? _manpower;
+    private MoraleSystem? _morale;
+    private WorldMarket? _market;
     private int _nextArmyId;
     private MovementSystem? _movement;
     private WarSystem? _war;
@@ -79,6 +81,12 @@ public sealed partial class SimulationHost : Node
         AssignProvinceResources();
 
         _relations = new Relations(_world.Nations.Count);
+
+        /* Morale reads relations every day, so it cannot be built before them.
+           The compiler allowed it because the field is nullable; the crash
+           only appeared once a day actually elapsed. */
+        _morale = new MoraleSystem(_world, _relations, _buildings);
+        _market = new WorldMarket(_stockpile);
         _momentum = new Momentum();
         _brain = new NationBrain(
             _world, _relations, _momentum,
@@ -457,6 +465,68 @@ public sealed partial class SimulationHost : Node
     public void SetMobilisation(int nation, MobilisationLevel level) =>
         _manpower?.SetLevel(nation, level);
 
+    /* Nations sell what they have too much of and buy what they lack. Crude,
+       but it keeps prices moving and means a nation short of technology has a
+       way out other than conquest. */
+    private void TradeForNations()
+    {
+        if (_world is null || _market is null || _stockpile is null)
+        {
+            return;
+        }
+
+        foreach (GameResource resource in new[]
+        {
+            GameResource.Food, GameResource.Fuel, GameResource.Materials,
+            GameResource.Technology, GameResource.RareResources,
+        })
+        {
+            for (int nation = 0; nation < _world.Nations.Count; nation++)
+            {
+                long held = _stockpile.Get(nation, resource);
+
+                if (held > SurplusThreshold && _market.CanSell(nation, resource, TradeLot, out _))
+                {
+                    _market.Sell(nation, resource, TradeLot);
+                }
+                else if (held < ShortageThreshold && _market.CanBuy(nation, resource, TradeLot, out _))
+                {
+                    _market.Buy(nation, resource, TradeLot);
+                }
+            }
+        }
+    }
+
+    private const long SurplusThreshold = 40_000;
+    private const long ShortageThreshold = 2_000;
+    private const long TradeLot = 500;
+
+    public long PriceOf(GameResource resource) => _market?.PriceOf(resource) ?? 0;
+
+    public float AverageMoraleOf(int nation)
+    {
+        if (_world is null)
+        {
+            return 0f;
+        }
+
+        float total = 0f;
+        int count = 0;
+
+        for (int i = 0; i < _world.Provinces.Count; i++)
+        {
+            if (_world.Provinces.Controller[i] != nation)
+            {
+                continue;
+            }
+
+            total += _world.Provinces.Morale[i];
+            count++;
+        }
+
+        return count > 0 ? total / count : 0f;
+    }
+
     public int UnitsInField(int nation) =>
         _armies.Values.Where(a => a.Nation == nation && !a.IsDestroyed).Sum(a => a.Count);
 
@@ -607,6 +677,9 @@ public sealed partial class SimulationHost : Node
                 if (_manpower is not null && _stockpile is not null)
                 {
                     _manpower.RunDay(_stockpile);
+                    _morale?.RunDay(_stockpile);
+                    _market?.RunDay();
+                    TradeForNations();
                 }
 
                 EmitSignal(SignalName.DayChanged, _world.Clock.Date.Day);

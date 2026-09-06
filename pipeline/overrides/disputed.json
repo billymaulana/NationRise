@@ -1,0 +1,30 @@
+{
+  "note": "Territories more than one nation regards as rightfully theirs. Owner follows who actually holds the ground; every claimant is recorded. An unfulfilled claim is a reason for war built into the map itself, so India and Pakistan have something to fight over because the data says so, not because a script says so.",
+  "claims": {
+    "ESH": ["MAR", "ESH"],
+    "SAH": ["MAR", "ESH"],
+    "TWN": ["TWN", "CHN"],
+    "SOL": ["SOL", "SOM"],
+    "KAS": ["IND", "PAK", "CHN"],
+    "CYN": ["CYP", "TUR"],
+    "KOS": ["KOS", "SRB"],
+    "PSX": ["PSE", "ISR"],
+    "ABV": ["GEO", "RUS"],
+    "OSA": ["GEO", "RUS"],
+    "PGA": ["MDA", "RUS"]
+  },
+  "byProvinceName": {
+    "note": "Named provinces whose nation code alone cannot identify the dispute.",
+    "Jammu and Kashmir": ["IND", "PAK"],
+    "Ladakh": ["IND", "CHN"],
+    "Aksai Chin": ["CHN", "IND"],
+    "Arunachal Pradesh": ["IND", "CHN"],
+    "Gilgit-Baltistan": ["PAK", "IND"],
+    "Azad Kashmir": ["PAK", "IND"],
+    "Sevastopol": ["RUS", "UKR"],
+    "Crimea": ["RUS", "UKR"],
+    "Krym": ["RUS", "UKR"],
+    "Sakhalin": ["RUS", "JPN"],
+    "Kuril Islands": ["RUS", "JPN"]
+  }
+}
