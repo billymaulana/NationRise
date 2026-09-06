@@ -15,11 +15,51 @@ public sealed partial class ProvinceMap : Node3D
 
     [Export] public Color LandColour { get; set; } = new(0.24f, 0.31f, 0.24f);
     [Export] public Color BorderColour { get; set; } = new(0.85f, 0.86f, 0.84f);
+    [Export] public Color HighlightColour { get; set; } = new(0.90f, 0.36f, 0.24f);
 
     private readonly List<int> _triangleProvince = [];
     private MeshInstance3D? _surface;
 
     public int ProvinceCount { get; private set; }
+
+    public void ApplyOwners(ushort[] owner, int highlightNation)
+    {
+        if (_surface?.Mesh is not ArrayMesh mesh || _triangleProvince.Count == 0)
+        {
+            return;
+        }
+
+        var colours = new Color[_triangleProvince.Count * 3];
+        for (int t = 0; t < _triangleProvince.Count; t++)
+        {
+            int province = _triangleProvince[t];
+            int nation = province < owner.Length ? owner[province] : 0xffff;
+            Color colour = nation == highlightNation ? HighlightColour : ColourFor(nation);
+
+            colours[t * 3] = colour;
+            colours[t * 3 + 1] = colour;
+            colours[t * 3 + 2] = colour;
+        }
+
+        var arrays = mesh.SurfaceGetArrays(0);
+        arrays[(int)Mesh.ArrayType.Color] = colours;
+
+        mesh.ClearSurfaces();
+        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+    }
+
+    /* Golden-ratio hue stepping keeps neighbouring nation indices visually far
+       apart without storing a palette for 247 nations. */
+    private static Color ColourFor(int nation)
+    {
+        if (nation == 0xffff)
+        {
+            return new Color(0.18f, 0.20f, 0.22f);
+        }
+
+        float hue = (nation * 0.618033988f) % 1f;
+        return Color.FromHsv(hue, 0.42f, 0.68f);
+    }
 
     public override void _Ready()
     {

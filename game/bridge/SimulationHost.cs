@@ -47,6 +47,26 @@ public sealed partial class SimulationHost : Node
         int indonesia = _world.Nations.IndexOf("IDN");
         GD.Print($"World loaded: {_world.Provinces.Count} provinces, {_world.Nations.Count} nations.");
         GD.Print($"Indonesia starts with {_world.VictoryPointsOf((ushort)indonesia)} victory points.");
+
+        CallDeferred(nameof(PaintMap), indonesia);
+    }
+
+    private void PaintMap(int highlightNation)
+    {
+        if (_world is null)
+        {
+            return;
+        }
+
+        var map = GetParent()?.GetNodeOrNull<Render.ProvinceMap>("ProvinceMap");
+        if (map is null)
+        {
+            GD.PushWarning("ProvinceMap node not found; map stays unpainted.");
+            return;
+        }
+
+        map.ApplyOwners(_world.Provinces.Owner, highlightNation);
+        GD.Print($"Map painted, highlighting nation {highlightNation}.");
     }
 
     public override void _Process(double delta)

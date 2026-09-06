@@ -1,0 +1,26 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
+# Generated map data, rebuilt by the pipeline
+game/data/
+pipeline/out/geometry-full.json
+
+# Pipeline
+pipeline/raw/
+pipeline/node_modules/
+
+# macOS
+.DS_Store
+
+# Tooling artefacts
+.playwright-mcp/
+.claude/
